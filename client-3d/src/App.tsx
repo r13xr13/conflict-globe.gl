@@ -58,6 +58,7 @@ export default function App() {
   const [animationMode, setAnimationMode] = useState(false);
   const [animationIndex, setAnimationIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [hoveredPoint, setHoveredPoint] = useState<any>(null);
 
   const [filters, setFilters] = useState<Record<string, boolean>>({
     conflict: true, maritime: true, air: true, cyber: true,
@@ -224,6 +225,10 @@ export default function App() {
     }
   };
 
+  const handlePointHover = (p: any) => {
+    setHoveredPoint(p);
+  };
+
   const startAnimation = () => {
     setAnimationMode(true);
     setAnimationIndex(0);
@@ -270,8 +275,51 @@ export default function App() {
         arcDashAnimateTime={1500}
         arcsTransition={0}
         onPointClick={handlePointClick}
+        onPointHover={handlePointHover}
         enablePointerInteraction={true}
       />
+
+      {/* Hover Tooltip */}
+      {hoveredPoint && (
+        <div style={{
+          position: "absolute",
+          bottom: 20,
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: "rgba(0,0,0,0.95)",
+          color: "white",
+          padding: "12px 20px",
+          borderRadius: "8px",
+          maxWidth: "350px",
+          zIndex: 1001,
+          border: `2px solid ${categoryColors[hoveredPoint.category] || "#e74c3c"}`,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.5)"
+        }}>
+          <div style={{ fontWeight: "bold", fontSize: "16px", marginBottom: "4px" }}>
+            {categoryEmoji[hoveredPoint.category]} {hoveredPoint.type}
+          </div>
+          <div style={{ 
+            display: "inline-block", 
+            background: categoryColors[hoveredPoint.category], 
+            padding: "2px 8px", 
+            borderRadius: "4px",
+            fontSize: "10px",
+            fontWeight: "bold",
+            marginBottom: "8px"
+          }}>
+            {hoveredPoint.category?.toUpperCase()}
+          </div>
+          <div style={{ fontSize: "12px", color: "#aaa", marginBottom: "4px" }}>
+            📅 {hoveredPoint.date}
+          </div>
+          <div style={{ fontSize: "13px", marginBottom: "8px" }}>
+            {hoveredPoint.description}
+          </div>
+          <div style={{ fontSize: "11px", color: "#888" }}>
+            📍 {hoveredPoint.lat?.toFixed(4)}, {hoveredPoint.lng?.toFixed(4)} | Source: {hoveredPoint.source}
+          </div>
+        </div>
+      )}
 
       {/* Control Panel */}
       <div style={{
