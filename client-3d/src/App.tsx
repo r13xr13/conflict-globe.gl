@@ -57,6 +57,7 @@ export default function App() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [animationMode, setAnimationMode] = useState(false);
   const [animationIndex, setAnimationIndex] = useState(0);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [hoveredPoint, setHoveredPoint] = useState<any>(null);
 
@@ -220,13 +221,14 @@ export default function App() {
     if (globeEl.current) {
       globeEl.current.pointOfView({ lat: p.lat, lng: p.lng, altitude: 1.5 }, 1000);
     }
+    setSelectedEvent(p);
     if (notificationsEnabled && "Notification" in window && Notification.permission === "granted") {
       new Notification(`${p.type}`, { body: p.description?.substring(0, 100), icon: "🗺️" });
     }
   };
 
   const handlePointHover = (p: any) => {
-    setHoveredPoint(p);
+    setHoveredPoint(p || null);
   };
 
   const startAnimation = () => {
@@ -275,7 +277,7 @@ export default function App() {
         arcDashAnimateTime={1500}
         arcsTransition={0}
         onPointClick={handlePointClick}
-        onPointHover={handlePointHover}
+        onHover={handlePointHover}
         enablePointerInteraction={true}
       />
 
@@ -318,6 +320,65 @@ export default function App() {
           <div style={{ fontSize: "11px", color: "#888" }}>
             📍 {hoveredPoint.lat?.toFixed(4)}, {hoveredPoint.lng?.toFixed(4)} | Source: {hoveredPoint.source}
           </div>
+        </div>
+      )}
+
+      {/* Selected Event Panel */}
+      {selectedEvent && (
+        <div style={{
+          position: "absolute",
+          top: 80,
+          right: 20,
+          background: "rgba(0,0,0,0.95)",
+          color: "white",
+          padding: "20px",
+          borderRadius: "12px",
+          maxWidth: "320px",
+          zIndex: 1001,
+          border: `2px solid ${categoryColors[selectedEvent.category] || "#e74c3c"}`,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.5)"
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
+            <span style={{ fontSize: "28px" }}>{categoryEmoji[selectedEvent.category]}</span>
+            <button onClick={() => setSelectedEvent(null)} 
+              style={{ background: "transparent", border: "none", color: "white", cursor: "pointer", fontSize: "20px" }}>
+              ✕
+            </button>
+          </div>
+          <div style={{ fontWeight: "bold", fontSize: "18px", marginBottom: "8px" }}>
+            {selectedEvent.type}
+          </div>
+          <div style={{ 
+            display: "inline-block", 
+            background: categoryColors[selectedEvent.category], 
+            padding: "4px 10px", 
+            borderRadius: "6px",
+            fontSize: "11px",
+            fontWeight: "bold",
+            marginBottom: "12px"
+          }}>
+            {selectedEvent.category?.toUpperCase()}
+          </div>
+          <div style={{ fontSize: "12px", color: "#aaa", marginBottom: "8px" }}>
+            📅 {selectedEvent.date}
+          </div>
+          <div style={{ fontSize: "14px", marginBottom: "12px", lineHeight: "1.4" }}>
+            {selectedEvent.description}
+          </div>
+          <div style={{ fontSize: "11px", color: "#888", marginBottom: "6px" }}>
+            📍 {selectedEvent.lat?.toFixed(4)}, {selectedEvent.lng?.toFixed(4)}
+          </div>
+          <div style={{ fontSize: "11px", color: "#666", marginBottom: "12px" }}>
+            Source: {selectedEvent.source}
+          </div>
+          {selectedEvent.lat !== 0 && (
+            <a href={`https://www.openstreetmap.org/#map=15/${selectedEvent.lat}/${selectedEvent.lng}`}
+              target="_blank" rel="noreferrer"
+              style={{ display: "block", background: "#3498db", padding: "10px", borderRadius: "6px",
+                textAlign: "center", color: "white", textDecoration: "none", fontSize: "12px" }}>
+              🗺️ View on Map
+            </a>
+          )}
         </div>
       )}
 
