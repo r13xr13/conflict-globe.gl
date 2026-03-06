@@ -23,7 +23,7 @@ export async function fetchEarthquakes(): Promise<EventData[]> {
           type: `Earthquake M${props.mag.toFixed(1)}`,
           description: `${props.place} - ${props.type}`,
           source: "USGS",
-          category: "land"
+          category: "earthquakes"
         });
       }
     }
@@ -65,7 +65,7 @@ export async function fetchWeatherAlerts(): Promise<EventData[]> {
           type: `${props.event} Warning`,
           description: `${props.headline?.substring(0, 100) || props.description?.substring(0, 100)}`,
           source: "NWS",
-          category: "land"
+          category: "weather"
         });
       }
     }

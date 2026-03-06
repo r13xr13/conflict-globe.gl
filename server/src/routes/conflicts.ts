@@ -102,7 +102,10 @@ router.get("/", async (_req, res) => {
         cyber: allEvents.filter(e => e.category === "cyber").length,
         land: allEvents.filter(e => e.category === "land").length,
         space: allEvents.filter(e => e.category === "space").length,
-        radio: allEvents.filter(e => e.category === "radio").length
+        radio: allEvents.filter(e => e.category === "radio").length,
+        weather: allEvents.filter(e => e.category === "weather").length,
+        earthquakes: allEvents.filter(e => e.category === "earthquakes").length,
+        social: allEvents.filter(e => e.category === "social").length
       }
     });
   } catch (error) {
