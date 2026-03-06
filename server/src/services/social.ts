@@ -1,7 +1,7 @@
 import { EventData } from "./conflict";
 
 export async function fetchTwitterGeoAlerts(): Promise<EventData[]> {
-  const tweets: EventData[] = [
+  const tweets = [
     { lat: 48.8566, lon: 2.3522, type: "Civil Unrest", desc: "Protest reported in Paris - multiple sources", date: new Date().toISOString() },
     { lat: 51.5074, lon: -0.1278, type: "Security Alert", desc: "Emergency services response in London", date: new Date().toISOString() },
     { lat: 40.7128, lon: -74.006, type: "Breaking News", desc: "Major incident reported in NYC", date: new Date().toISOString() },
@@ -25,7 +25,7 @@ export async function fetchTwitterGeoAlerts(): Promise<EventData[]> {
 }
 
 export async function fetchRedditLiveThreads(): Promise<EventData[]> {
-  const threads: EventData[] = [
+  const threads = [
     { lat: 0, lon: 0, type: "r/worldnews Live", desc: "Breaking news thread - multiple updates", date: new Date().toISOString() },
     { lat: 0, lon: 0, type: "r/geopolitics Live", desc: "Geopolitical analysis thread", date: new Date().toISOString() },
     { lat: 0, lon: 0, type: "r/CombatFootage Live", desc: "Combat footage compilation", date: new Date().toISOString() },
@@ -46,7 +46,7 @@ export async function fetchRedditLiveThreads(): Promise<EventData[]> {
 }
 
 export async function fetchTelegramChannels(): Promise<EventData[]> {
-  const channels: EventData[] = [
+  const channels = [
     { lat: 0, lon: 0, type: "Intel Channel", desc: "Telegram OSINT channel - war updates", date: new Date().toISOString() },
     { lat: 0, lon: 0, type: "War Monitor", desc: "Live war monitoring channel", date: new Date().toISOString() },
     { lat: 0, lon: 0, type: "Intel Group", desc: "Regional intelligence updates", date: new Date().toISOString() },
@@ -66,7 +66,7 @@ export async function fetchTelegramChannels(): Promise<EventData[]> {
 }
 
 export async function fetchWebIntrusionAlerts(): Promise<EventData[]> {
-  const intrusions: EventData[] = [
+  const intrusions = [
     { lat: 0, lon: 0, type: "DDoS Attack", desc: "Large-scale DDoS targeting financial sector", date: new Date().toISOString() },
     { lat: 0, lon: 0, type: "Ransomware", desc: "New ransomware variant detected", date: new Date().toISOString() },
     { lat: 0, lon: 0, type: "Data Breach", desc: "Major data breach reported", date: new Date().toISOString() },
@@ -87,7 +87,7 @@ export async function fetchWebIntrusionAlerts(): Promise<EventData[]> {
 }
 
 export async function fetchDarkWebAlerts(): Promise<EventData[]> {
-  const alerts: EventData[] = [
+  const alerts = [
     { lat: 0, lon: 0, type: "Darknet Market", desc: "New darknet market activity detected", date: new Date().toISOString() },
     { lat: 0, lon: 0, type: "Leak Alert", desc: "Database leak posted on dark web", date: new Date().toISOString() },
     { lat: 0, lon: 0, type: "Exploit Kit", desc: "New exploit kit available", date: new Date().toISOString() },

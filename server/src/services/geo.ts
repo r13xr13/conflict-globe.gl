@@ -109,7 +109,7 @@ export async function fetchVolcanoAlerts(): Promise<EventData[]> {
 }
 
 export async function fetchNuclearFacilities(): Promise<EventData[]> {
-  const facilities: EventData[] = [
+  const facilities = [
     { lat: 35.994, lon: -84.274, name: "Oak Ridge", country: "USA", type: "Research" },
     { lat: 33.882, lon: -118.053, name: "San Onofre", country: "USA", type: "Decommissioned" },
     { lat: 41.265, lon: -73.854, name: "Indian Point", country: "USA", type: "Decommissioned" },
