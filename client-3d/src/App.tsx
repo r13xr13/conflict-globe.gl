@@ -161,14 +161,33 @@ export default function App() {
 
   const arcsData = useMemo(() => {
     if (!showArcs) return [];
+    // Show arcs for all major categories from different origin points
+    const origins: Record<string, { lat: number, lng: number }> = {
+      conflict: { lat: 20, lng: 0 },
+      maritime: { lat: 0, lng: -30 },
+      air: { lat: 40, lng: -100 },
+      cyber: { lat: 37, lng: -122 },
+      space: { lat: 28, lng: -80 },
+      radio: { lat: 50, lng: 10 },
+      weather: { lat: 30, lng: -90 },
+      earthquakes: { lat: 35, lng: 140 },
+      social: { lat: 40, lng: -74 },
+      land: { lat: 25, lng: 0 }
+    };
+    
     return displayEvents
-      .filter(e => e.category === "conflict")
-      .slice(0, 15)
-      .map(c => ({
-        startLat: 0, startLng: 0,
-        endLat: c.lat, endLng: c.lon,
-        color: [categoryColors.conflict, "#ffffff"]
-      }));
+      .filter(e => e.category && e.lat !== 0 && e.lon !== 0)
+      .slice(0, 30)
+      .map(c => {
+        const origin = origins[c.category] || { lat: 0, lng: 0 };
+        return {
+          startLat: origin.lat,
+          startLng: origin.lng,
+          endLat: c.lat,
+          endLng: c.lon,
+          color: [categoryColors[c.category] || "#e74c3c", "#ffffff"]
+        };
+      });
   }, [displayEvents, showArcs]);
 
   const categoryCounts = useMemo(() => {

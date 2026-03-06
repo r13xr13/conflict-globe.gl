@@ -77,7 +77,7 @@ export async function fetchRedditGeoPosts(): Promise<EventData[]> {
             type: `Reddit: r/${sub}`,
             description: title.substring(0, 100),
             source: `Reddit r/${sub}`,
-            category: "conflict"
+            category: "social"
           });
         }
       }

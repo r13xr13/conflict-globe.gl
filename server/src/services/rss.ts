@@ -108,7 +108,7 @@ export async function fetchRSSNews(): Promise<EventData[]> {
             type: `News: ${feed.name}`,
             description: `${item.title.substring(0, 100)}...`,
             source: feed.name,
-            category: "conflict"
+              category: "social"
           });
         }
       }
@@ -142,7 +142,7 @@ export async function fetchDefenseNews(): Promise<EventData[]> {
             type: "Breaking News",
             description: article.title,
             source: article.source?.name || "News API",
-            category: "conflict"
+              category: "social"
           });
         }
       }

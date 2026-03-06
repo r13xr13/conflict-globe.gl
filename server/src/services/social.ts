@@ -20,7 +20,7 @@ export async function fetchTwitterGeoAlerts(): Promise<EventData[]> {
     type: t.type,
     description: t.desc,
     source: "Social Media Intelligence",
-    category: "conflict"
+    category: "social"
   }));
 }
 
@@ -41,7 +41,7 @@ export async function fetchRedditLiveThreads(): Promise<EventData[]> {
     type: t.type,
     description: t.desc,
     source: "Reddit Live Threads",
-    category: "conflict"
+    category: "social"
   }));
 }
 
@@ -61,7 +61,7 @@ export async function fetchTelegramChannels(): Promise<EventData[]> {
     type: c.type,
     description: c.desc,
     source: "Telegram Channels",
-    category: "conflict"
+    category: "social"
   }));
 }
 
