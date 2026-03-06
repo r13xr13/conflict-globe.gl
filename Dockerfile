@@ -1,11 +1,11 @@
-# ===== FRONTEND BUILD =====
+# ===== FRONTEND BUILD (3D) =====
 FROM node:20-alpine AS client-build
 WORKDIR /app/client
 
-COPY client/package.json client/package-lock.json* ./ 
+COPY client-3d/package.json client-3d/package-lock.json* ./ 
 RUN npm install
 
-COPY client/ ./
+COPY client-3d/ ./
 RUN npm run build
 
 # ===== BACKEND BUILD =====
@@ -27,7 +27,7 @@ ENV NODE_ENV=production
 COPY --from=server-build /app/server/dist ./server/dist
 COPY --from=server-build /app/server/node_modules ./server/node_modules
 
-COPY --from=client-build /app/client/build ./client-build
+COPY --from=client-build /app/client/dist ./client-build
 
 ENV PORT=8080
 
