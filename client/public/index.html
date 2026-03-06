@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Conflict Globe</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      #root:empty:before {
+        content: "Loading...";
+        display: block;
+        padding: 20px;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>window.onerror=function(e){document.getElementById('root').innerHTML='<pre style="color:red">Error: '+e+'</pre>'};</script>
+  </body>
+</html>
