@@ -7,8 +7,15 @@ export default defineConfig({
     outDir: 'dist',
     rollupOptions: {
       output: {
-        manualChunks: {
-          three: ['three']
+        manualChunks(id: string) {
+          if (id.includes('node_modules')) {
+            if (id.includes('three') || id.includes('globe')) {
+              return 'three-vendor';
+            }
+            if (id.includes('react')) {
+              return 'react-vendor';
+            }
+          }
         }
       }
     }
