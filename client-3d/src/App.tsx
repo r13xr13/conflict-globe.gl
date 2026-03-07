@@ -53,9 +53,12 @@ export default function App() {
   const [events, setEvents] = useState<ConflictEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [pointSize, setPointSize] = useState(3);
+  const [pointSize, setPointSize] = useState(2);
   const [showArcs, setShowArcs] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [showHexBin, setShowHexBin] = useState(false);
+  const [showRings, setShowRings] = useState(false);
+  const [showPolygons, setShowPolygons] = useState(false);
   const [enableClustering, setEnableClustering] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState(60);
@@ -65,7 +68,9 @@ export default function App() {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [timelinePosition, setTimelinePosition] = useState(100);
   const [globeTheme, setGlobeTheme] = useState<'dark' | 'light'>('dark');
-  const [pointPrecision, setPointPrecision] = useState(300);
+  const [pointPrecision, setPointPrecision] = useState(64);
+  const [globeRotation, setGlobeRotation] = useState(false);
+  const [hoverInfo, setHoverInfo] = useState<any>(null);
 
   const [filters, setFilters] = useState<Record<string, boolean>>({
     conflict: true, maritime: true, air: true, cyber: true,
@@ -96,54 +101,48 @@ export default function App() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Auto-refresh
   useEffect(() => {
     if (!autoRefresh) return;
     const interval = setInterval(loadData, refreshInterval * 1000);
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval, loadData]);
 
-  // WebSocket for real-time updates
   useEffect(() => {
     const socket = io(window.location.origin, {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 3
     });
     
-    socket.on('connect', () => {
-      console.log('WebSocket connected');
-    });
-    
-    socket.on('disconnect', () => {
-      console.log('WebSocket disconnected');
-    });
-    
+    socket.on('connect', () => console.log('WebSocket connected'));
+    socket.on('disconnect', () => console.log('WebSocket disconnected'));
     socket.on('conflicts:update', (data: { events: ConflictEvent[] }) => {
       setEvents(data.events || []);
       setLoading(false);
     });
     
     socketRef.current = socket;
-    
-    return () => {
-      socket.disconnect();
-    };
+    return () => { socket.disconnect(); };
   }, []);
 
-  // Debounced search
-  const debouncedSearch = useMemo(() => {
-    let timeout: NodeJS.Timeout;
-    return (value: string) => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => setSearchQuery(value), 300);
+  // Globe auto-rotation
+  useEffect(() => {
+    if (!globeRotation || !globeEl.current) return;
+    
+    const globe = globeEl.current;
+    let animationId: number;
+    
+    const rotate = () => {
+      const current = globe.pointOfView()?.altitude || 2.5;
+      globe.pointOfView({ altitude: current, lat: undefined, lng: undefined });
+      animationId = requestAnimationFrame(rotate);
     };
-  }, []);
+    
+    rotate();
+    return () => cancelAnimationFrame(animationId);
+  }, [globeRotation]);
 
   const filteredEvents = useMemo(() => {
-    return events.filter((event) => {
-      if (!filters[event.category]) return false;
-      return true;
-    });
+    return events.filter(event => filters[event.category]);
   }, [events, filters]);
 
   const searchFilteredEvents = useMemo(() => {
@@ -156,20 +155,6 @@ export default function App() {
     );
   }, [filteredEvents, searchQuery]);
 
-  const arcData = useMemo(() => {
-    if (!showArcs) return [];
-    return searchFilteredEvents
-      .filter(e => e.endLat !== undefined && e.endLon !== undefined && e.endLat !== 0)
-      .slice(0, 500)
-      .map(e => ({
-        startLat: e.lat,
-        startLng: e.lon,
-        endLat: e.endLat!,
-        endLng: e.endLon!,
-        color: categoryColors[e.category] || '#ffff00'
-      }));
-  }, [searchFilteredEvents, showArcs]);
-
   const timelineEvents = useMemo(() => {
     const sorted = [...searchFilteredEvents].sort((a, b) => 
       new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -178,6 +163,54 @@ export default function App() {
     const cutoffIndex = Math.floor((timelinePosition / 100) * sorted.length);
     return sorted.slice(0, cutoffIndex + 1);
   }, [searchFilteredEvents, timelinePosition]);
+
+  const arcData = useMemo(() => {
+    if (!showArcs) return [];
+    return searchFilteredEvents
+      .filter(e => e.endLat && e.endLon && e.endLat !== 0)
+      .slice(0, 300)
+      .map(e => ({
+        startLat: e.lat,
+        startLng: e.lon,
+        endLat: e.endLat!,
+        endLng: e.endLon!,
+        color: categoryColors[e.category]
+      }));
+  }, [searchFilteredEvents, showArcs]);
+
+  const hexBinData = useMemo(() => {
+    if (!showHexBin) return [];
+    return timelineEvents.filter(e => e.lat !== 0 && e.lon !== 0);
+  }, [timelineEvents, showHexBin]);
+
+  const ringData = useMemo(() => {
+    if (!showRings) return [];
+    return timelineEvents
+      .filter(e => e.lat !== 0 && e.lon !== 0)
+      .slice(0, 500)
+      .map(e => ({
+        lat: e.lat,
+        lng: e.lon,
+        color: categoryColors[e.category],
+        date: e.date
+      }));
+  }, [timelineEvents, showRings]);
+
+  // Polygon data for country boundaries (using simplified hex-grid approach)
+  const polygonData = useMemo(() => {
+    if (!showPolygons) return [];
+    // Aggregate events by rough regions for polygon visualization
+    const regions: Record<string, { lat: number; lng: number; count: number }> = {};
+    timelineEvents.forEach(e => {
+      if (e.lat === 0 || e.lon === 0) return;
+      const key = `${Math.floor(e.lat / 10)}-${Math.floor(e.lon / 10)}`;
+      if (!regions[key]) {
+        regions[key] = { lat: Math.floor(e.lat / 10) * 10 + 5, lng: Math.floor(e.lon / 10) * 10 + 5, count: 0 };
+      }
+      regions[key].count++;
+    });
+    return Object.values(regions).filter(r => r.count > 0);
+  }, [timelineEvents, showPolygons]);
 
   const exportToCSV = () => {
     const headers = ['ID', 'Lat', 'Lon', 'Date', 'Type', 'Category', 'Description', 'Source'];
@@ -195,18 +228,8 @@ export default function App() {
       type: 'FeatureCollection',
       features: timelineEvents.map(e => ({
         type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: [e.lon, e.lat]
-        },
-        properties: {
-          id: e.id,
-          date: e.date,
-          type: e.type,
-          category: e.category,
-          description: e.description,
-          source: e.source
-        }
+        geometry: { type: 'Point', coordinates: [e.lon, e.lat] },
+        properties: { id: e.id, date: e.date, type: e.type, category: e.category, description: e.description, source: e.source }
       }))
     };
     const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/json' });
@@ -215,13 +238,6 @@ export default function App() {
   };
 
   const bgColor = globeTheme === 'dark' ? '#000000' : '#f0f0f0';
-
-  // Memoize Globe props
-  const globeProps = useMemo(() => ({
-    pointsData: timelineEvents,
-    arcsData: arcData,
-    heatmapsData: showHeatmap ? timelineEvents : []
-  }), [timelineEvents, arcData, showHeatmap]);
 
   return (
     <div style={{ width: "100vw", height: "100vh", background: bgColor, position: 'relative', overflow: 'hidden' }}>
@@ -232,7 +248,7 @@ export default function App() {
         backgroundColor={bgColor}
         
         // Points
-        pointsData={globeProps.pointsData}
+        pointsData={timelineEvents}
         pointLat={(d: any) => d.lat}
         pointLng={(d: any) => d.lon}
         pointColor={(d: any) => categoryColors[d.category] || '#ffff00'}
@@ -241,45 +257,117 @@ export default function App() {
         pointsMerge={enableClustering}
         pointResolution={pointPrecision}
         
-        // Labels
-        labelsData={timelineEvents}
-        labelLat={(d: any) => d.lat}
-        labelLng={(d: any) => d.lon}
-        labelText={(d: any) => categoryEmoji[d.category] || '•'}
-        labelSize={1.5}
-        labelDotRadius={0.3}
-        labelColor={() => 'rgba(255,255,255,0.7)'}
+        // HexBin aggregation
+        hexBinPointsData={hexBinData}
+        hexBinPointWeight={1}
+        hexBinResolution={2}
+        hexBinColor={(d: any) => {
+          const count = d.points.length;
+          if (count > 100) return '#ff0000';
+          if (count > 50) return '#ff6600';
+          if (count > 20) return '#ffaa00';
+          if (count > 10) return '#ffff00';
+          return '#88ff00';
+        }}
+        hexBinAltitude={0.02}
         
-        // Click
-        onPointClick={(point: any) => setSelectedEvent(point)}
+        // Rings
+        ringsData={ringData}
+        ringLat={(d: any) => d.lat}
+        ringLng={(d: any) => d.lng}
+        ringColor={(d: any) => d.color}
+        ringAltitude={0.01}
+        ringRadius={0.5}
+        ringResolution={16}
+        
+        // Polygons
+        polygonsData={polygonData}
+        polygonCapColor={() => 'rgba(255,100,100,0.3)'}
+        polygonSideColor={() => 'rgba(255,100,100,0.3)'}
+        polygonStrokeColor={() => 'rgba(255,100,100,0.5)'}
+        polygonAltitude={0.01}
         
         // Arcs
-        arcsData={globeProps.arcsData}
+        arcsData={arcData}
         arcStartLat={(d: any) => d.startLat}
         arcStartLng={(d: any) => d.startLng}
         arcEndLat={(d: any) => d.endLat}
         arcEndLng={(d: any) => d.endLng}
         arcColor={(d: any) => d.color}
-        arcAltitude={0.15}
-        arcStroke={0.8}
-        arcDashLength={0.4}
+        arcAltitude={0.2}
+        arcStroke={0.5}
+        arcDashLength={0.3}
         arcDashGap={0.2}
-        arcDashAnimateTime={1500}
+        arcDashAnimateTime={2000}
         
         // Heatmap
-        heatmapsData={globeProps.heatmapsData}
+        heatmapsData={showHeatmap ? timelineEvents : []}
         heatmapPoints={(d: any) => [[d.lat, d.lon]]}
-        heatmapPointWeight={0.5}
-        heatmapBandwidth={1.5}
-        heatmapAltitude={0.02}
+        heatmapPointWeight={0.3}
+        heatmapBandwidth={2}
+        
+        // Labels (rich HTML tooltips)
+        labelsData={timelineEvents.filter(e => e.lat !== 0)}
+        labelLat={(d: any) => d.lat}
+        labelLng={(d: any) => d.lon}
+        labelText={(d: any) => categoryEmoji[d.category] || '•'}
+        labelSize={1.2}
+        labelDotRadius={0.4}
+        labelColor={() => 'rgba(255,255,255,0.9)'}
+        labelResolution={2}
+        labelAltitude={0.02}
+        
+        // Hover info
+        onHover={(hoverObj: any) => {
+          if (hoverObj && hoverObj.type === 'hover') {
+            setHoverInfo(hoverObj);
+          } else {
+            setHoverInfo(null);
+          }
+        }}
+        
+        // Click handler
+        onPointClick={(point: any) => setSelectedEvent(point)}
         
         // Performance
         animateIn={true}
         waitForGlobeReady={true}
-        
-        // Controls
         enablePointerInteraction={true}
       />
+
+      {/* Hover Info Tooltip */}
+      {hoverInfo && hoverInfo.object && (
+        <div style={{
+          position: 'absolute',
+          bottom: '100px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.85)',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          color: 'white',
+          fontSize: '0.85rem',
+          maxWidth: '300px',
+          zIndex: 150,
+          border: `1px solid ${categoryColors[hoverInfo.object.category] || '#fff'}`
+        }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+            {categoryEmoji[hoverInfo.object.category]} {hoverInfo.object.type}
+          </div>
+          <div style={{ color: '#aaa', fontSize: '0.75rem' }}>
+            {hoverInfo.object.date}
+          </div>
+          {hoverInfo.object.description && (
+            <div style={{ marginTop: '8px', fontSize: '0.8rem' }}>
+              {hoverInfo.object.description.substring(0, 150)}
+              {hoverInfo.object.description.length > 150 ? '...' : ''}
+            </div>
+          )}
+          <div style={{ marginTop: '8px', fontSize: '0.7rem', color: '#888' }}>
+            📍 {hoverInfo.object.lat?.toFixed(2)}, {hoverInfo.object.lon?.toFixed(2)}
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div style={{
@@ -291,11 +379,8 @@ export default function App() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
-            onClick={() => setShowSidebar(prev => !prev)}
-            style={{
-              background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px',
-              padding: '8px 12px', color: 'white', cursor: 'pointer'
-            }}
+            onClick={() => setShowSidebar(p => !p)}
+            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', padding: '8px 12px', color: 'white', cursor: 'pointer' }}
           >
             ☰
           </button>
@@ -304,71 +389,27 @@ export default function App() {
               ⚔️ Conflict Globe
             </h1>
             <p style={{ margin: 0, color: '#888', fontSize: '0.8rem' }}>
-              {timelineEvents.length} events • {autoRefresh ? '🔄' : '⏸️'} Auto
+              {timelineEvents.length} events • {autoRefresh ? '🔄' : '⏸️'}
             </p>
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button
-            onClick={loadData}
-            style={{
-              background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px',
-              padding: '8px 12px', color: 'white', cursor: 'pointer'
-            }}
-            title="Refresh"
-          >
+          <button onClick={loadData} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', padding: '8px 12px', color: 'white', cursor: 'pointer' }} title="Refresh">
             🔄
           </button>
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setShowExportMenu(!showExportMenu)}
-              style={{
-                background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px',
-                padding: '8px 12px', color: 'white', cursor: 'pointer'
-              }}
-            >
-              💾
-            </button>
-            {showExportMenu && (
-              <div style={{
-                position: 'absolute', top: '100%', right: 0,
-                background: 'rgba(15,15,20,0.95)', borderRadius: '8px',
-                padding: '8px 0', marginTop: '4px', minWidth: '150px',
-                border: '1px solid rgba(255,255,255,0.1)'
-              }}>
-                {[
-                  { label: 'JSON', action: () => {
-                    const blob = new Blob([JSON.stringify(timelineEvents, null, 2)], { type: "application/json" });
-                    saveAs(blob, "conflicts.json");
-                    setShowExportMenu(false);
-                  }},
-                  { label: 'CSV', action: exportToCSV },
-                  { label: 'GeoJSON', action: exportToGeoJSON }
-                ].map(item => (
-                  <button
-                    key={item.label}
-                    onClick={item.action}
-                    style={{
-                      display: 'block', width: '100%', padding: '8px 16px',
-                      background: 'none', border: 'none', color: 'white',
-                      textAlign: 'left', cursor: 'pointer'
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <button
-            onClick={() => setGlobeTheme(t => t === 'dark' ? 'light' : 'dark')}
-            style={{
-              background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px',
-              padding: '8px 12px', color: 'white', cursor: 'pointer'
-            }}
+          <button 
+            onClick={() => setGlobeTheme(t => t === 'dark' ? 'light' : 'dark')} 
+            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', padding: '8px 12px', color: 'white', cursor: 'pointer' }}
           >
             {globeTheme === 'dark' ? '☀️' : '🌙'}
+          </button>
+          <button 
+            onClick={() => setGlobeRotation(r => !r)} 
+            style={{ background: globeRotation ? '#e74c3c' : 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', padding: '8px 12px', color: 'white', cursor: 'pointer' }}
+            title="Auto-rotate"
+          >
+            🔁
           </button>
         </div>
       </div>
@@ -384,14 +425,7 @@ export default function App() {
           <span style={{ color: 'white', fontSize: '0.9rem' }}>📅 Timeline</span>
           <span style={{ color: '#888', fontSize: '0.8rem' }}>{timelineEvents.length} events</span>
         </div>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={timelinePosition}
-          onChange={(e) => setTimelinePosition(Number(e.target.value))}
-          style={{ width: '100%', cursor: 'pointer' }}
-        />
+        <input type="range" min="0" max="100" value={timelinePosition} onChange={(e) => setTimelinePosition(Number(e.target.value))} style={{ width: '100%', cursor: 'pointer' }} />
       </div>
 
       {/* Sidebar */}
@@ -410,12 +444,36 @@ export default function App() {
             <input
               type="text"
               placeholder="🔍 Search..."
-              onChange={(e) => debouncedSearch(e.target.value)}
-              style={{
-                width: '100%', padding: '10px', borderRadius: '6px',
-                border: 'none', background: 'rgba(255,255,255,0.1)', color: 'white'
-              }}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: 'none', background: 'rgba(255,255,255,0.1)', color: 'white' }}
             />
+          </div>
+
+          {/* Visualizations */}
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '8px' }}>VISUALIZATIONS</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
+                <input type="checkbox" checked={showArcs} onChange={(e) => setShowArcs(e.target.checked)} />
+                🏹 Arcs
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
+                <input type="checkbox" checked={showHeatmap} onChange={(e) => setShowHeatmap(e.target.checked)} />
+                🔥 Heatmap
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
+                <input type="checkbox" checked={showHexBin} onChange={(e) => setShowHexBin(e.target.checked)} />
+                ⬡ HexBins
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
+                <input type="checkbox" checked={showRings} onChange={(e) => setShowRings(e.target.checked)} />
+                ⭕ Rings
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
+                <input type="checkbox" checked={showPolygons} onChange={(e) => setShowPolygons(e.target.checked)} />
+                🗺️ Polygons
+              </label>
+            </div>
           </div>
 
           {/* Categories */}
@@ -442,75 +500,28 @@ export default function App() {
           {/* Options */}
           <div style={{ marginBottom: '16px' }}>
             <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '8px' }}>OPTIONS</div>
-            
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer', color: 'white' }}>
-              <input 
-                type="checkbox" 
-                checked={showArcs} 
-                onChange={(e) => setShowArcs(e.target.checked)} 
-              />
-              🏹 Show Arcs
-            </label>
-            
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer', color: 'white' }}>
-              <input 
-                type="checkbox" 
-                checked={showHeatmap} 
-                onChange={(e) => setShowHeatmap(e.target.checked)} 
-              />
-              🔥 Show Heatmap
-            </label>
-            
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer', color: 'white' }}>
-              <input 
-                type="checkbox" 
-                checked={enableClustering} 
-                onChange={(e) => setEnableClustering(e.target.checked)} 
-              />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', cursor: 'pointer', color: 'white' }}>
+              <input type="checkbox" checked={enableClustering} onChange={(e) => setEnableClustering(e.target.checked)} />
               📍 Clustering
             </label>
-            
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer', color: 'white' }}>
-              <input 
-                type="checkbox" 
-                checked={autoRefresh} 
-                onChange={(e) => setAutoRefresh(e.target.checked)} 
-              />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', cursor: 'pointer', color: 'white' }}>
+              <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
               🔄 Auto-refresh
             </label>
           </div>
 
-          {/* Refresh Interval */}
+          {/* Sliders */}
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '4px' }}>Point Size: {pointSize}</div>
+            <input type="range" min="1" max="10" value={pointSize} onChange={(e) => setPointSize(Number(e.target.value))} style={{ width: '100%' }} />
+          </div>
+
           {autoRefresh && (
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '4px' }}>
-                Refresh: {refreshInterval}s
-              </div>
-              <input
-                type="range"
-                min="30"
-                max="300"
-                value={refreshInterval}
-                onChange={(e) => setRefreshInterval(Number(e.target.value))}
-                style={{ width: '100%' }}
-              />
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '4px' }}>Refresh: {refreshInterval}s</div>
+              <input type="range" min="30" max="300" value={refreshInterval} onChange={(e) => setRefreshInterval(Number(e.target.value))} style={{ width: '100%' }} />
             </div>
           )}
-
-          {/* Point Size */}
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '4px' }}>
-              Point Size: {pointSize}
-            </div>
-            <input
-              type="range"
-              min="1"
-              max="10"
-              value={pointSize}
-              onChange={(e) => setPointSize(Number(e.target.value))}
-              style={{ width: '100%' }}
-            />
-          </div>
 
           <div style={{ color: '#666', fontSize: '0.7rem' }}>
             {searchFilteredEvents.length} events
@@ -523,7 +534,7 @@ export default function App() {
         <div style={{
           position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
           background: 'rgba(15,15,20,0.98)', borderRadius: '12px', padding: '24px',
-          maxWidth: '400px', width: '90%', border: `2px solid ${categoryColors[selectedEvent.category]}`,
+          maxWidth: '450px', width: '90%', border: `2px solid ${categoryColors[selectedEvent.category]}`,
           zIndex: 200
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
@@ -538,14 +549,21 @@ export default function App() {
           <div style={{ color: 'white', fontSize: '0.9rem', marginBottom: '12px' }}>{selectedEvent.description}</div>
           <div style={{ color: '#666', fontSize: '0.8rem' }}>📍 {selectedEvent.lat.toFixed(4)}, {selectedEvent.lon.toFixed(4)}</div>
           {selectedEvent.source && <div style={{ color: '#666', fontSize: '0.8rem', marginTop: '4px' }}>Source: {selectedEvent.source}</div>}
+          
+          {/* Export from modal */}
+          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #333' }}>
+            <button onClick={() => {
+              const blob = new Blob([JSON.stringify(selectedEvent, null, 2)], { type: "application/json" });
+              saveAs(blob, `event-${selectedEvent.id}.json`);
+            }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', padding: '8px 16px', borderRadius: '4px', color: 'white', cursor: 'pointer' }}>
+              💾 Export Event
+            </button>
+          </div>
         </div>
       )}
 
       {loading && (
-        <div style={{
-          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-          color: 'white', fontSize: '1.5rem'
-        }}>
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: 'white', fontSize: '1.5rem' }}>
           Loading...
         </div>
       )}
