@@ -173,4 +173,3 @@ MIT License - See LICENSE for details.
 
 ---
 
-**Note**: This is an OSINT visualization tool for educational and informational purposes. Data is aggregated from publicly available sources.
