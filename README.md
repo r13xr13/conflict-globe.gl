@@ -5,6 +5,8 @@ A real-time 3D OSINT visualization platform for global conflict and geopolitical
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
 
+https://github.com/r13xr13/conflict-globe.gl/blob/master/2026-03-07%2001-08-05.mp4
+
 ## Features
 
 ### Real-Time Data
