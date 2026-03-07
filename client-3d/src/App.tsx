@@ -42,18 +42,9 @@ const categoryEmoji: Record<string, string> = {
   social: "📱"
 };
 
-const dataSources = [
-  { id: 'gdelt', name: 'GDELT', category: 'conflict', enabled: true },
-  { id: 'ucdp', name: 'UCDP', category: 'conflict', enabled: true },
-  { id: 'vessels', name: 'Vessel Data', category: 'maritime', enabled: true },
-  { id: 'aircraft', name: 'Air Traffic', category: 'air', enabled: true },
-  { id: 'cyber', name: 'Cyber Threats', category: 'cyber', enabled: true },
-  { id: 'satellites', name: 'Satellites', category: 'space', enabled: true },
-  { id: 'radio', name: 'Radio Signals', category: 'radio', enabled: true },
-  { id: 'weather', name: 'Weather', category: 'weather', enabled: true },
-  { id: 'earthquakes', name: 'Earthquakes', category: 'earthquakes', enabled: true },
-  { id: 'social', name: 'Social Media', category: 'social', enabled: true },
-];
+const GLOBE_DARK = '//unpkg.com/three-globe/example/img/earth-dark.jpg';
+const GLOBE_LIGHT = '//unpkg.com/three-globe/example/img/earth-blue-marble.jpg';
+const SKY_DARK = '//unpkg.com/three-globe/example/img/night-sky.png';
 
 export default function App() {
   const globeEl = useRef<any>(null);
@@ -63,21 +54,18 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [pointSize, setPointSize] = useState(3);
-  const [showArcs, setShowArcs] = useState(false);
+  const [showArcs, setShowArcs] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(false);
-  const [enableClustering, setEnableClustering] = useState(false);
+  const [enableClustering, setEnableClustering] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [refreshInterval, setRefreshInterval] = useState(30);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [refreshInterval, setRefreshInterval] = useState(60);
   const [selectedEvent, setSelectedEvent] = useState<ConflictEvent | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [hoveredPoint, setHoveredPoint] = useState<any>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [timelinePosition, setTimelinePosition] = useState(100);
-  const [dataSourceSettings, setDataSourceSettings] = useState(dataSources);
-  const [wsConnected, setWsConnected] = useState(false);
   const [globeTheme, setGlobeTheme] = useState<'dark' | 'light'>('dark');
+  const [pointPrecision, setPointPrecision] = useState(300);
 
   const [filters, setFilters] = useState<Record<string, boolean>>({
     conflict: true, maritime: true, air: true, cyber: true,
@@ -91,7 +79,7 @@ export default function App() {
       const data = await res.json();
       setEvents(data.events || []);
     } catch (e) {
-      console.error(e);
+      console.error('Failed to load data:', e);
     } finally {
       setLoading(false);
     }
@@ -108,29 +96,31 @@ export default function App() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // Auto-refresh
   useEffect(() => {
-    if (!autoRefresh || wsConnected) return;
+    if (!autoRefresh) return;
     const interval = setInterval(loadData, refreshInterval * 1000);
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval, loadData, wsConnected]);
+  }, [autoRefresh, refreshInterval, loadData]);
 
+  // WebSocket for real-time updates
   useEffect(() => {
     const socket = io(window.location.origin, {
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 3
     });
     
     socket.on('connect', () => {
-      setWsConnected(true);
       console.log('WebSocket connected');
     });
     
     socket.on('disconnect', () => {
-      setWsConnected(false);
       console.log('WebSocket disconnected');
     });
     
     socket.on('conflicts:update', (data: { events: ConflictEvent[] }) => {
       setEvents(data.events || []);
+      setLoading(false);
     });
     
     socketRef.current = socket;
@@ -140,48 +130,58 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    if (notificationsEnabled && "Notification" in window) {
-      Notification.requestPermission();
-    }
-  }, [notificationsEnabled]);
+  // Debounced search
+  const debouncedSearch = useMemo(() => {
+    let timeout: NodeJS.Timeout;
+    return (value: string) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => setSearchQuery(value), 300);
+    };
+  }, []);
 
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
       if (!filters[event.category]) return false;
-      if (searchQuery && !event.description?.toLowerCase().includes(searchQuery.toLowerCase()) &&
-          !event.type?.toLowerCase().includes(searchQuery.toLowerCase())) {
-        return false;
-      }
       return true;
     });
-  }, [events, filters, searchQuery]);
+  }, [events, filters]);
+
+  const searchFilteredEvents = useMemo(() => {
+    if (!searchQuery) return filteredEvents;
+    const q = searchQuery.toLowerCase();
+    return filteredEvents.filter(e => 
+      e.description?.toLowerCase().includes(q) ||
+      e.type?.toLowerCase().includes(q) ||
+      e.category?.toLowerCase().includes(q)
+    );
+  }, [filteredEvents, searchQuery]);
 
   const arcData = useMemo(() => {
     if (!showArcs) return [];
-    return filteredEvents
-      .filter(e => e.endLat !== undefined && e.endLon !== undefined)
+    return searchFilteredEvents
+      .filter(e => e.endLat !== undefined && e.endLon !== undefined && e.endLat !== 0)
+      .slice(0, 500)
       .map(e => ({
-        ...e,
         startLat: e.lat,
         startLng: e.lon,
         endLat: e.endLat!,
-        endLng: e.endLon!
+        endLng: e.endLon!,
+        color: categoryColors[e.category] || '#ffff00'
       }));
-  }, [filteredEvents, showArcs]);
+  }, [searchFilteredEvents, showArcs]);
 
   const timelineEvents = useMemo(() => {
-    const sorted = [...filteredEvents].sort((a, b) => 
+    const sorted = [...searchFilteredEvents].sort((a, b) => 
       new Date(a.date).getTime() - new Date(b.date).getTime()
     );
     if (sorted.length === 0) return [];
     const cutoffIndex = Math.floor((timelinePosition / 100) * sorted.length);
     return sorted.slice(0, cutoffIndex + 1);
-  }, [filteredEvents, timelinePosition]);
+  }, [searchFilteredEvents, timelinePosition]);
 
   const exportToCSV = () => {
     const headers = ['ID', 'Lat', 'Lon', 'Date', 'Type', 'Category', 'Description', 'Source'];
-    const rows = filteredEvents.map(e => [
+    const rows = timelineEvents.map(e => [
       e.id, e.lat, e.lon, e.date, e.type, e.category, e.description || '', e.source || ''
     ]);
     const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
@@ -193,7 +193,7 @@ export default function App() {
   const exportToGeoJSON = () => {
     const geojson = {
       type: 'FeatureCollection',
-      features: filteredEvents.map(e => ({
+      features: timelineEvents.map(e => ({
         type: 'Feature',
         geometry: {
           type: 'Point',
@@ -216,47 +216,69 @@ export default function App() {
 
   const bgColor = globeTheme === 'dark' ? '#000000' : '#f0f0f0';
 
+  // Memoize Globe props
+  const globeProps = useMemo(() => ({
+    pointsData: timelineEvents,
+    arcsData: arcData,
+    heatmapsData: showHeatmap ? timelineEvents : []
+  }), [timelineEvents, arcData, showHeatmap]);
+
   return (
     <div style={{ width: "100vw", height: "100vh", background: bgColor, position: 'relative', overflow: 'hidden' }}>
       <Globe
         ref={globeEl}
-        globeImageUrl={globeTheme === 'dark' 
-          ? '//unpkg.com/three-globe/example/img/earth-dark.jpg' 
-          : '//unpkg.com/three-globe/example/img/earth-blue-marble.jpg'}
-        backgroundImageUrl={globeTheme === 'dark' 
-          ? '//unpkg.com/three-globe/example/img/night-sky.png' 
-          : ''}
+        globeImageUrl={globeTheme === 'dark' ? GLOBE_DARK : GLOBE_LIGHT}
+        backgroundImageUrl={globeTheme === 'dark' ? SKY_DARK : ''}
         backgroundColor={bgColor}
-        pointsData={timelineEvents}
+        
+        // Points
+        pointsData={globeProps.pointsData}
         pointLat={(d: any) => d.lat}
         pointLng={(d: any) => d.lon}
         pointColor={(d: any) => categoryColors[d.category] || '#ffff00'}
-        pointAltitude={0.02}
+        pointAltitude={0.01}
         pointRadius={pointSize / 100}
         pointsMerge={enableClustering}
-        pointLabel={(d: any) => `
-          <div style="background: rgba(0,0,0,0.8); color: white; padding: 8px; border-radius: 4px; max-width: 250px;">
-            <strong>${categoryEmoji[d.category] || ''} ${d.type || 'Event'}</strong><br/>
-            <small>${d.date || ''}</small><br/>
-            <p style="margin: 4px 0;">${d.description || ''}</p>
-            ${d.source ? `<small style="color: #aaa;">Source: ${d.source}</small>` : ''}
-          </div>
-        `}
+        pointResolution={pointPrecision}
+        
+        // Labels
+        labelsData={timelineEvents}
+        labelLat={(d: any) => d.lat}
+        labelLng={(d: any) => d.lon}
+        labelText={(d: any) => categoryEmoji[d.category] || '•'}
+        labelSize={1.5}
+        labelDotRadius={0.3}
+        labelColor={() => 'rgba(255,255,255,0.7)'}
+        
+        // Click
         onPointClick={(point: any) => setSelectedEvent(point)}
-        onPointHover={(point: any) => setHoveredPoint(point)}
-        arcsData={arcData}
+        
+        // Arcs
+        arcsData={globeProps.arcsData}
         arcStartLat={(d: any) => d.startLat}
         arcStartLng={(d: any) => d.startLng}
         arcEndLat={(d: any) => d.endLat}
         arcEndLng={(d: any) => d.endLng}
-        arcColor={(d: any) => categoryColors[d.category]}
-        arcAltitude={0.1}
-        arcStroke={0.5}
-        showArcs={showArcs}
-        heatmapsData={showHeatmap ? timelineEvents : []}
+        arcColor={(d: any) => d.color}
+        arcAltitude={0.15}
+        arcStroke={0.8}
+        arcDashLength={0.4}
+        arcDashGap={0.2}
+        arcDashAnimateTime={1500}
+        
+        // Heatmap
+        heatmapsData={globeProps.heatmapsData}
         heatmapPoints={(d: any) => [[d.lat, d.lon]]}
-        heatmapPointWeight={1}
-        heatmapBandwidth={2}
+        heatmapPointWeight={0.5}
+        heatmapBandwidth={1.5}
+        heatmapAltitude={0.02}
+        
+        // Performance
+        animateIn={true}
+        waitForGlobeReady={true}
+        
+        // Controls
+        enablePointerInteraction={true}
       />
 
       {/* Header */}
@@ -282,7 +304,7 @@ export default function App() {
               ⚔️ Conflict Globe
             </h1>
             <p style={{ margin: 0, color: '#888', fontSize: '0.8rem' }}>
-              OSINT Intelligence {wsConnected ? '🟢' : '🔴'}
+              {timelineEvents.length} events • {autoRefresh ? '🔄' : '⏸️'} Auto
             </p>
           </div>
         </div>
@@ -294,6 +316,7 @@ export default function App() {
               background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px',
               padding: '8px 12px', color: 'white', cursor: 'pointer'
             }}
+            title="Refresh"
           >
             🔄
           </button>
@@ -316,7 +339,7 @@ export default function App() {
               }}>
                 {[
                   { label: 'JSON', action: () => {
-                    const blob = new Blob([JSON.stringify(filteredEvents, null, 2)], { type: "application/json" });
+                    const blob = new Blob([JSON.stringify(timelineEvents, null, 2)], { type: "application/json" });
                     saveAs(blob, "conflicts.json");
                     setShowExportMenu(false);
                   }},
@@ -358,7 +381,7 @@ export default function App() {
         zIndex: 100
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <span style={{ color: 'white', fontSize: '0.9rem' }}>Timeline</span>
+          <span style={{ color: 'white', fontSize: '0.9rem' }}>📅 Timeline</span>
           <span style={{ color: '#888', fontSize: '0.8rem' }}>{timelineEvents.length} events</span>
         </div>
         <input
@@ -382,12 +405,12 @@ export default function App() {
           border: '1px solid rgba(255,255,255,0.1)',
           zIndex: 100
         }}>
+          {/* Search */}
           <div style={{ marginBottom: '16px' }}>
             <input
               type="text"
               placeholder="🔍 Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => debouncedSearch(e.target.value)}
               style={{
                 width: '100%', padding: '10px', borderRadius: '6px',
                 border: 'none', background: 'rgba(255,255,255,0.1)', color: 'white'
@@ -395,6 +418,7 @@ export default function App() {
             />
           </div>
 
+          {/* Categories */}
           <div style={{ marginBottom: '16px' }}>
             <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '8px' }}>CATEGORIES</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -415,28 +439,81 @@ export default function App() {
             </div>
           </div>
 
+          {/* Options */}
           <div style={{ marginBottom: '16px' }}>
             <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '8px' }}>OPTIONS</div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', cursor: 'pointer', color: 'white' }}>
-              <input type="checkbox" checked={showArcs} onChange={(e) => setShowArcs(e.target.checked)} />
-              Show Arcs
+            
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer', color: 'white' }}>
+              <input 
+                type="checkbox" 
+                checked={showArcs} 
+                onChange={(e) => setShowArcs(e.target.checked)} 
+              />
+              🏹 Show Arcs
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', cursor: 'pointer', color: 'white' }}>
-              <input type="checkbox" checked={showHeatmap} onChange={(e) => setShowHeatmap(e.target.checked)} />
-              Show Heatmap
+            
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer', color: 'white' }}>
+              <input 
+                type="checkbox" 
+                checked={showHeatmap} 
+                onChange={(e) => setShowHeatmap(e.target.checked)} 
+              />
+              🔥 Show Heatmap
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', cursor: 'pointer', color: 'white' }}>
-              <input type="checkbox" checked={enableClustering} onChange={(e) => setEnableClustering(e.target.checked)} />
-              Enable Clustering
+            
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer', color: 'white' }}>
+              <input 
+                type="checkbox" 
+                checked={enableClustering} 
+                onChange={(e) => setEnableClustering(e.target.checked)} 
+              />
+              📍 Clustering
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', cursor: 'pointer', color: 'white' }}>
-              <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
-              Auto-refresh
+            
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer', color: 'white' }}>
+              <input 
+                type="checkbox" 
+                checked={autoRefresh} 
+                onChange={(e) => setAutoRefresh(e.target.checked)} 
+              />
+              🔄 Auto-refresh
             </label>
           </div>
 
+          {/* Refresh Interval */}
+          {autoRefresh && (
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '4px' }}>
+                Refresh: {refreshInterval}s
+              </div>
+              <input
+                type="range"
+                min="30"
+                max="300"
+                value={refreshInterval}
+                onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
+          )}
+
+          {/* Point Size */}
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '4px' }}>
+              Point Size: {pointSize}
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              value={pointSize}
+              onChange={(e) => setPointSize(Number(e.target.value))}
+              style={{ width: '100%' }}
+            />
+          </div>
+
           <div style={{ color: '#666', fontSize: '0.7rem' }}>
-            {filteredEvents.length} events
+            {searchFilteredEvents.length} events
           </div>
         </div>
       )}
