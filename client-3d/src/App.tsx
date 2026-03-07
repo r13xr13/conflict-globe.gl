@@ -42,7 +42,6 @@ const categoryEmoji: Record<string, string> = {
   social: "📱"
 };
 
-// Globe assets
 const GLOBE_DARK = '//unpkg.com/three-globe/example/img/earth-dark.jpg';
 const GLOBE_LIGHT = '//unpkg.com/three-globe/example/img/earth-blue-marble.jpg';
 const BUMP_MAP = '//unpkg.com/three-globe/example/img/earth-topology.png';
@@ -58,23 +57,19 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [pointSize, setPointSize] = useState(2);
   
-  // Visualizations
   const [showArcs, setShowArcs] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [showHexBin, setShowHexBin] = useState(false);
   const [showRings, setShowRings] = useState(false);
   const [showPolygons, setShowPolygons] = useState(false);
   const [showPaths, setShowPaths] = useState(false);
-  const [showHtmlMarkers, setShowHtmlMarkers] = useState(false);
   
-  // Globe options
   const [enableClustering, setEnableClustering] = useState(true);
   const [showGraticules, setShowGraticules] = useState(false);
   const [showAtmosphere, setShowAtmosphere] = useState(true);
   const [showClouds, setShowClouds] = useState(false);
   const [globeRotation, setGlobeRotation] = useState(false);
   
-  // Data settings
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState(60);
   const [maxPoints, setMaxPoints] = useState(200);
@@ -82,7 +77,6 @@ export default function App() {
   const [selectedEvent, setSelectedEvent] = useState<ConflictEvent | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
-  const [showExportMenu, setShowExportMenu] = useState(false);
   const [timelinePosition, setTimelinePosition] = useState(100);
   const [globeTheme, setGlobeTheme] = useState<'dark' | 'light'>('dark');
   const [pointPrecision, setPointPrecision] = useState(32);
@@ -136,7 +130,6 @@ export default function App() {
     return () => { socket.disconnect(); };
   }, []);
 
-  // Globe auto-rotation
   useEffect(() => {
     if (!globeRotation || !globeEl.current) return;
     const globe = globeEl.current;
@@ -150,7 +143,6 @@ export default function App() {
     return () => cancelAnimationFrame(animationId);
   }, [globeRotation]);
 
-  // Filter and limit data for performance
   const filteredEvents = useMemo(() => {
     return events.filter(event => filters[event.category]).slice(0, maxPoints);
   }, [events, filters, maxPoints]);
@@ -174,11 +166,29 @@ export default function App() {
     return sorted.slice(0, cutoffIndex + 1);
   }, [searchFilteredEvents, timelinePosition]);
 
-  // Visualization data
+  // Generate synthetic end points for arcs/paths visualization when data doesn't have them
+  const eventsWithDestinations = useMemo(() => {
+    return timelineEvents.map((e, idx) => {
+      if (e.endLat !== undefined && e.endLon !== undefined) {
+        return e;
+      }
+      // Generate random destination for demo (in real app, this would come from API)
+      const destLat = e.lat + (Math.random() - 0.5) * 30;
+      const destLon = e.lon + (Math.random() - 0.5) * 30;
+      return { ...e, endLat: destLat, endLon: destLon };
+    });
+  }, [timelineEvents]);
+
+  // Valid events for visualization (non-zero coordinates)
+  const validEvents = useMemo(() => {
+    return eventsWithDestinations.filter(e => e.lat !== 0 && e.lon !== 0 && !isNaN(e.lat) && !isNaN(e.lon));
+  }, [eventsWithDestinations]);
+
+  // Arcs
   const arcData = useMemo(() => {
     if (!showArcs) return [];
-    return searchFilteredEvents
-      .filter(e => e.endLat && e.endLon && e.endLat !== 0)
+    return validEvents
+      .filter(e => e.endLat !== undefined && e.endLat !== 0)
       .slice(0, 100)
       .map(e => ({
         startLat: e.lat,
@@ -187,79 +197,54 @@ export default function App() {
         endLng: e.endLon!,
         color: categoryColors[e.category]
       }));
-  }, [searchFilteredEvents, showArcs]);
+  }, [validEvents, showArcs]);
 
-  const hexBinData = useMemo(() => {
+  // HexBin - aggregate points
+  const hexBinPointsData = useMemo(() => {
     if (!showHexBin) return [];
-    return timelineEvents.filter(e => e.lat !== 0 && e.lon !== 0);
-  }, [timelineEvents, showHexBin]);
+    return validEvents;
+  }, [validEvents, showHexBin]);
 
-  const ringData = useMemo(() => {
+  // Rings
+  const ringsData = useMemo(() => {
     if (!showRings) return [];
-    return timelineEvents
-      .filter(e => e.lat !== 0 && e.lon !== 0)
-      .slice(0, 200)
-      .map(e => ({
-        lat: e.lat,
-        lng: e.lon,
-        color: categoryColors[e.category]
-      }));
-  }, [timelineEvents, showRings]);
+    return validEvents.slice(0, 300);
+  }, [validEvents, showRings]);
 
-  // Path data for movement visualization
-  const pathData = useMemo(() => {
-    if (!showPaths) return [];
-    // Create paths from events with end coordinates
-    return searchFilteredEvents
-      .filter(e => e.endLat && e.endLon && e.endLat !== 0)
-      .slice(0, 50)
-      .map(e => ({
-        path: [
-          [e.lat, e.lon],
-          [e.endLat!, e.endLon!]
-        ],
-        color: categoryColors[e.category]
-      }));
-  }, [searchFilteredEvents, showPaths]);
-
-  const polygonData = useMemo(() => {
+  // Polygons - region aggregation
+  const polygonsData = useMemo(() => {
     if (!showPolygons) return [];
-    const regions: Record<string, { lat: number; lng: number; count: number }> = {};
-    timelineEvents.forEach(e => {
-      if (e.lat === 0 || e.lon === 0) return;
-      const key = `${Math.floor(e.lat / 15)}-${Math.floor(e.lon / 15)}`;
+    const regions: Record<string, any> = {};
+    validEvents.forEach(e => {
+      const latKey = Math.floor(e.lat / 10) * 10;
+      const lonKey = Math.floor(e.lon / 10) * 10;
+      const key = `${latKey}-${lonKey}`;
       if (!regions[key]) {
-        regions[key] = { lat: Math.floor(e.lat / 15) * 15 + 7.5, lng: Math.floor(e.lon / 15) * 15 + 7.5, count: 0 };
+        regions[key] = { lat: latKey + 5, lng: lonKey + 5, points: [], count: 0 };
       }
+      regions[key].points.push(e);
       regions[key].count++;
     });
-    return Object.values(regions).filter(r => r.count > 0);
-  }, [timelineEvents, showPolygons]);
+    return Object.values(regions).filter((r: any) => r.count > 0);
+  }, [validEvents, showPolygons]);
 
-  const exportToCSV = () => {
-    const headers = ['ID', 'Lat', 'Lon', 'Date', 'Type', 'Category', 'Description', 'Source'];
-    const rows = timelineEvents.map(e => [
-      e.id, e.lat, e.lon, e.date, e.type, e.category, e.description || '', e.source || ''
-    ]);
-    const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    saveAs(blob, `conflicts-${new Date().toISOString().split('T')[0]}.csv`);
-    setShowExportMenu(false);
-  };
+  // Paths
+  const pathsData = useMemo(() => {
+    if (!showPaths) return [];
+    return validEvents
+      .filter(e => e.endLat !== undefined && e.endLat !== 0)
+      .slice(0, 50)
+      .map(e => ({
+        path: [[e.lat, e.lon], [e.endLat!, e.endLon!]],
+        color: categoryColors[e.category]
+      }));
+  }, [validEvents, showPaths]);
 
-  const exportToGeoJSON = () => {
-    const geojson = {
-      type: 'FeatureCollection',
-      features: timelineEvents.map(e => ({
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [e.lon, e.lat] },
-        properties: { id: e.id, date: e.date, type: e.type, category: e.category, description: e.description, source: e.source }
-      }))
-    };
-    const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/json' });
-    saveAs(blob, `conflicts-${new Date().toISOString().split('T')[0]}.geojson`);
-    setShowExportMenu(false);
-  };
+  // Heatmap data
+  const heatmapsData = useMemo(() => {
+    if (!showHeatmap) return [];
+    return [validEvents]; // Single heatmap dataset
+  }, [validEvents, showHeatmap]);
 
   const bgColor = globeTheme === 'dark' ? '#000011' : '#f0f0f0';
 
@@ -276,13 +261,11 @@ export default function App() {
         atmosphereAltitude={0.15}
         showGraticules={showGraticules}
         graticuleColor={() => globeTheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}
-        
-        // Clouds layer
         cloudsUrl={showClouds ? CLOUDS : undefined}
         cloudsOpacity={0.4}
         
-        // Points
-        pointsData={timelineEvents}
+        // Points (main visualization)
+        pointsData={validEvents}
         pointLat={(d: any) => d.lat}
         pointLng={(d: any) => d.lon}
         pointColor={(d: any) => categoryColors[d.category] || '#ffff00'}
@@ -292,40 +275,48 @@ export default function App() {
         pointResolution={pointPrecision}
         
         // HexBin
-        hexBinPointsData={hexBinData}
+        hexBinPointsData={hexBinPointsData}
         hexBinPointWeight={1}
-        hexBinResolution={3}
+        hexBinResolution={2}
+        hexBinPointLat={(d: any) => d.lat}
+        hexBinPointLng={(d: any) => d.lon}
         hexBinColor={(d: any) => {
           const count = d.points.length;
-          if (count > 50) return '#ff0000';
-          if (count > 25) return '#ff6600';
-          if (count > 10) return '#ffaa00';
-          if (count > 5) return '#ffff00';
+          if (count > 30) return '#ff0000';
+          if (count > 20) return '#ff4400';
+          if (count > 10) return '#ff8800';
+          if (count > 5) return '#ffcc00';
           return '#88ff00';
         }}
         
         // Rings
-        ringsData={ringData}
+        ringsData={ringsData}
         ringLat={(d: any) => d.lat}
-        ringLng={(d: any) => d.lng}
-        ringColor={(d: any) => d.color}
-        ringAltitude={0.01}
+        ringLng={(d: any) => d.lng || d.lon}
+        ringColor={(d: any) => categoryColors[d.category] || 'rgba(255,200,0,0.5)'}
+        ringAltitude={0.005}
         ringRadius={0.3}
-        ringResolution={12}
+        ringResolution={16}
         
-        // Polygons
-        polygonsData={polygonData}
-        polygonCapColor={() => 'rgba(255,100,100,0.3)'}
+        // Polygons (from hexbin aggregation)
+        polygonsData={polygonsData}
+        polygonCapColor={(d: any) => {
+          const count = d.count || d.points?.length || 0;
+          const alpha = Math.min(0.8, count / 10);
+          return `rgba(255, 100, 100, ${alpha})`;
+        }}
         polygonSideColor={() => 'rgba(255,100,100,0.2)'}
-        polygonStrokeColor={() => 'rgba(255,100,100,0.5)'}
+        polygonStrokeColor={() => 'rgba(255,100,100,0.8)'}
+        polygonAltitude={0.01}
         
         // Paths
-        pathsData={pathData}
+        pathsData={pathsData}
         pathPoints={(d: any) => d.path}
         pathPointLat={(p: any) => p[0]}
         pathPointLng={(p: any) => p[1]}
-        pathColor={() => 'rgba(255,255,255,0.3)'}
-        pathDashLength={0.5}
+        pathColor={(d: any) => d.color || 'rgba(255,255,255,0.5)'}
+        pathStroke={1.5}
+        pathDashLength={0.4}
         pathDashGap={0.2}
         pathDashAnimateTime={2000}
         
@@ -336,22 +327,24 @@ export default function App() {
         arcEndLat={(d: any) => d.endLat}
         arcEndLng={(d: any) => d.endLng}
         arcColor={(d: any) => d.color}
-        arcAltitude={0.15}
-        arcStroke={0.5}
+        arcAltitude={0.2}
+        arcStroke={1}
         arcDashLength={0.3}
         arcDashGap={0.2}
         arcDashAnimateTime={1500}
         
         // Heatmap
-        heatmapsData={showHeatmap ? timelineEvents : []}
-        heatmapPoints={(d: any) => [[d.lat, d.lon]]}
-        heatmapPointWeight={0.3}
+        heatmapsData={heatmapsData}
+        heatmapPoints={(d: any) => d}
+        heatmapPointLat={(p: any) => p.lat}
+        heatmapPointLng={(p: any) => p.lon}
+        heatmapPointWeight={1}
         heatmapBandwidth={2}
         
         // Labels
-        labelsData={timelineEvents.filter(e => e.lat !== 0)}
+        labelsData={validEvents}
         labelLat={(d: any) => d.lat}
-        labelLng={(d: any) => d.lon}
+        labelLng={(d: any) => d.lng || d.lon}
         labelText={(d: any) => categoryEmoji[d.category] || '•'}
         labelSize={1}
         labelDotRadius={0.3}
@@ -370,22 +363,28 @@ export default function App() {
         enablePointerInteraction={true}
       />
 
-      {/* Hover Info */}
       {hoverInfo && hoverInfo.object && (
         <div style={{
           position: 'absolute', bottom: '100px', left: '50%', transform: 'translateX(-50%)',
-          background: 'rgba(0,0,0,0.85)', borderRadius: '8px', padding: '12px 16px',
-          color: 'white', fontSize: '0.85rem', maxWidth: '300px', zIndex: 150,
-          border: `1px solid ${categoryColors[hoverInfo.object.category] || '#fff'}`
+          background: 'rgba(0,0,0,0.9)', borderRadius: '8px', padding: '12px 16px',
+          color: 'white', fontSize: '0.85rem', maxWidth: '320px', zIndex: 150,
+          border: `2px solid ${categoryColors[hoverInfo.object.category] || '#fff'}`
         }}>
-          <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '4px', fontSize: '1rem' }}>
             {categoryEmoji[hoverInfo.object.category]} {hoverInfo.object.type}
           </div>
-          <div style={{ color: '#aaa', fontSize: '0.75rem' }}>{hoverInfo.object.date}</div>
+          <div style={{ color: '#aaa', fontSize: '0.75rem', marginBottom: '6px' }}>
+            {hoverInfo.object.date} • {hoverInfo.object.category}
+          </div>
           {hoverInfo.object.description && (
-            <div style={{ marginTop: '8px', fontSize: '0.8rem' }}>
-              {hoverInfo.object.description.substring(0, 120)}
-              {hoverInfo.object.description.length > 120 ? '...' : ''}
+            <div style={{ fontSize: '0.8rem', lineHeight: '1.4' }}>
+              {hoverInfo.object.description.substring(0, 150)}
+              {hoverInfo.object.description.length > 150 ? '...' : ''}
+            </div>
+          )}
+          {hoverInfo.object.source && (
+            <div style={{ marginTop: '8px', fontSize: '0.7rem', color: '#888' }}>
+              📡 {hoverInfo.object.source}
             </div>
           )}
         </div>
@@ -403,7 +402,7 @@ export default function App() {
           <button onClick={() => setShowSidebar(p => !p)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', padding: '8px 12px', color: 'white', cursor: 'pointer' }}>☰</button>
           <div>
             <h1 style={{ margin: 0, fontSize: '1.5rem', color: 'white', fontWeight: 600 }}>⚔️ Conflict Globe</h1>
-            <p style={{ margin: 0, color: '#888', fontSize: '0.8rem' }}>{timelineEvents.length} events • {autoRefresh ? '🔄' : '⏸️'}</p>
+            <p style={{ margin: 0, color: '#888', fontSize: '0.8rem' }}>{validEvents.length} events • {autoRefresh ? '🔄' : '⏸️'}</p>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -419,7 +418,7 @@ export default function App() {
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '16px 24px', background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)', zIndex: 100 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
           <span style={{ color: 'white', fontSize: '0.9rem' }}>📅 Timeline</span>
-          <span style={{ color: '#888', fontSize: '0.8rem' }}>{timelineEvents.length} events</span>
+          <span style={{ color: '#888', fontSize: '0.8rem' }}>{validEvents.length} events</span>
         </div>
         <input type="range" min="0" max="100" value={timelinePosition} onChange={(e) => setTimelinePosition(Number(e.target.value))} style={{ width: '100%', cursor: 'pointer' }} />
       </div>
@@ -427,12 +426,10 @@ export default function App() {
       {/* Sidebar */}
       {showSidebar && (
         <div style={{ position: 'absolute', top: '80px', left: '16px', width: isMobile ? 'calc(100% - 32px)' : '320px', maxHeight: 'calc(100vh - 180px)', background: 'rgba(15,15,20,0.95)', borderRadius: '12px', padding: '16px', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', zIndex: 100 }}>
-          {/* Search */}
           <div style={{ marginBottom: '16px' }}>
             <input type="text" placeholder="🔍 Search..." onChange={(e) => setSearchQuery(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: 'none', background: 'rgba(255,255,255,0.1)', color: 'white' }} />
           </div>
 
-          {/* Globe Options */}
           <div style={{ marginBottom: '16px' }}>
             <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '8px' }}>GLOBE</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -448,16 +445,9 @@ export default function App() {
             </div>
           </div>
 
-          {/* Visualizations */}
           <div style={{ marginBottom: '16px' }}>
             <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '8px' }}>VISUALIZATIONS</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
-                <input type="checkbox" checked={showArcs} onChange={(e) => setShowArcs(e.target.checked)} /> 🏹 Arcs
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
-                <input type="checkbox" checked={showHeatmap} onChange={(e) => setShowHeatmap(e.target.checked)} /> 🔥 Heatmap
-              </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
                 <input type="checkbox" checked={showHexBin} onChange={(e) => setShowHexBin(e.target.checked)} /> ⬡ HexBins
               </label>
@@ -465,15 +455,20 @@ export default function App() {
                 <input type="checkbox" checked={showRings} onChange={(e) => setShowRings(e.target.checked)} /> ⭕ Rings
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
-                <input type="checkbox" checked={showPaths} onChange={(e) => setShowPaths(e.target.checked)} /> 🛤️ Paths
+                <input type="checkbox" checked={showPolygons} onChange={(e) => setShowPolygons(e.target.checked)} /> 🗺️ Polygons
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
-                <input type="checkbox" checked={showPolygons} onChange={(e) => setShowPolygons(e.target.checked)} /> 🗺️ Polygons
+                <input type="checkbox" checked={showHeatmap} onChange={(e) => setShowHeatmap(e.target.checked)} /> 🔥 Heatmap
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
+                <input type="checkbox" checked={showArcs} onChange={(e) => setShowArcs(e.target.checked)} /> 🏹 Arcs (needs endLat/endLon)
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
+                <input type="checkbox" checked={showPaths} onChange={(e) => setShowPaths(e.target.checked)} /> 🛤️ Paths (needs endLat/endLon)
               </label>
             </div>
           </div>
 
-          {/* Categories */}
           <div style={{ marginBottom: '16px' }}>
             <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '8px' }}>CATEGORIES</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -485,7 +480,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Options */}
           <div style={{ marginBottom: '16px' }}>
             <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '8px' }}>OPTIONS</div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', cursor: 'pointer', color: 'white' }}>
@@ -496,7 +490,6 @@ export default function App() {
             </label>
           </div>
 
-          {/* Sliders */}
           <div style={{ marginBottom: '12px' }}>
             <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '4px' }}>Max Points: {maxPoints}</div>
             <input type="range" min="50" max="500" value={maxPoints} onChange={(e) => setMaxPoints(Number(e.target.value))} style={{ width: '100%' }} />
@@ -515,7 +508,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Modal */}
       {selectedEvent && (
         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'rgba(15,15,20,0.98)', borderRadius: '12px', padding: '24px', maxWidth: '450px', width: '90%', border: `2px solid ${categoryColors[selectedEvent.category]}`, zIndex: 200 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
@@ -528,6 +520,14 @@ export default function App() {
           <div style={{ color: 'white', fontSize: '0.9rem', marginBottom: '12px' }}>{selectedEvent.description}</div>
           <div style={{ color: '#666', fontSize: '0.8rem' }}>📍 {selectedEvent.lat.toFixed(4)}, {selectedEvent.lon.toFixed(4)}</div>
           {selectedEvent.source && <div style={{ color: '#666', fontSize: '0.8rem', marginTop: '4px' }}>Source: {selectedEvent.source}</div>}
+          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #333' }}>
+            <button onClick={() => {
+              const blob = new Blob([JSON.stringify(selectedEvent, null, 2)], { type: "application/json" });
+              saveAs(blob, `event-${selectedEvent.id}.json`);
+            }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', padding: '8px 16px', borderRadius: '4px', color: 'white', cursor: 'pointer' }}>
+              💾 Export
+            </button>
+          </div>
         </div>
       )}
 
