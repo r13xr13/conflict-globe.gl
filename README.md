@@ -12,6 +12,10 @@
 
 [Demo](#demo) · [Quick Start](#quick-start) · [Documentation](#architecture) · [Contributing](#contributing)
 
+<br/>
+
+![Conflict Globe Screenshot](https://raw.githubusercontent.com/r13xr13/conflict-globe.gl/master/Screenshot_07-Mar_00-33-44_13941.png)
+
 </div>
 
 ---
@@ -21,7 +25,7 @@
 Conflict Globe is an open-source intelligence (OSINT) platform that aggregates and visualizes global conflict, maritime, air, cyber, and geopolitical events in real time on an interactive 3D globe. It is designed for analysts, researchers, and journalists who need a high-signal, low-latency view of world events.
 
 > **Demo**
-> [▶ Watch a screen recording of the platform in action](https://github.com/r13xr13/conflict-globe.gl/blob/master/2026-03-07%2001-08-05.mp4)
+> [▶ Watch a demo of the platform on YouTube](https://youtu.be/e52LPDBjIAQ)
 
 ---
 
