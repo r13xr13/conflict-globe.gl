@@ -39,16 +39,16 @@ A real-time 3D OSINT visualization platform for global conflict and geopolitical
 - Export to JSON/GeoJSON
 
 ### Categories
-- ⚔️ Conflict
-- 🚢 Maritime
-- ✈️ Air
-- 💻 Cyber
-- 🏗️ Land
-- 🛰️ Space
-- 📡 Radio
-- 🌤 Weather
-- 🌍 Earthquakes
-- 📱 Social Media
+- Conflict
+- Maritime
+- Air
+- Cyber
+- Land
+- Space
+- Radio
+- Weather
+- Earthquakes
+- Social Media
 
 ## Quick Start
 
