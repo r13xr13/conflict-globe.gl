@@ -42,6 +42,19 @@ const categoryEmoji: Record<string, string> = {
   social: "📱"
 };
 
+const categoryInfo: Record<string, string> = {
+  conflict: "Armed conflicts, battles, military operations",
+  maritime: "Vessel tracking, maritime incidents, shipping routes",
+  air: "Aircraft movements, air incidents, aviation routes",
+  cyber: "Cyber attacks, data breaches, security threats",
+  land: "Land-based incidents, territorial changes",
+  space: "Satellite movements, space events, orbital data",
+  radio: "Radio signals, communications intercepts",
+  weather: "Weather events, storms, natural disasters",
+  earthquakes: "Seismic activity, earthquake reports",
+  social: "Social media, news feeds, public information"
+};
+
 const GLOBE_DARK = '//unpkg.com/three-globe/example/img/earth-dark.jpg';
 const GLOBE_LIGHT = '//unpkg.com/three-globe/example/img/earth-blue-marble.jpg';
 const BUMP_MAP = '//unpkg.com/three-globe/example/img/earth-topology.png';
@@ -57,6 +70,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [pointSize, setPointSize] = useState(2);
   
+  // Visualizations
   const [showArcs, setShowArcs] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [showHexBin, setShowHexBin] = useState(false);
@@ -64,23 +78,26 @@ export default function App() {
   const [showPolygons, setShowPolygons] = useState(false);
   const [showPaths, setShowPaths] = useState(false);
   
+  // Globe options
   const [enableClustering, setEnableClustering] = useState(true);
   const [showGraticules, setShowGraticules] = useState(false);
   const [showAtmosphere, setShowAtmosphere] = useState(true);
   const [showClouds, setShowClouds] = useState(false);
   const [globeRotation, setGlobeRotation] = useState(false);
   
+  // Data settings
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState(60);
   const [maxPoints, setMaxPoints] = useState(200);
   
+  // Selected states
   const [selectedEvent, setSelectedEvent] = useState<ConflictEvent | null>(null);
+  const [hoveredEvent, setHoveredEvent] = useState<ConflictEvent | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const [timelinePosition, setTimelinePosition] = useState(100);
   const [globeTheme, setGlobeTheme] = useState<'dark' | 'light'>('dark');
   const [pointPrecision, setPointPrecision] = useState(32);
-  const [hoverInfo, setHoverInfo] = useState<any>(null);
 
   const [filters, setFilters] = useState<Record<string, boolean>>({
     conflict: true, maritime: true, air: true, cyber: true,
@@ -130,6 +147,18 @@ export default function App() {
     return () => { socket.disconnect(); };
   }, []);
 
+  // Focus globe on selected event
+  useEffect(() => {
+    if (selectedEvent && globeEl.current && selectedEvent.lat !== 0) {
+      globeEl.current.pointOfView({
+        lat: selectedEvent.lat,
+        lng: selectedEvent.lon,
+        altitude: 1.5
+      }, 1000);
+    }
+  }, [selectedEvent]);
+
+  // Auto-rotation
   useEffect(() => {
     if (!globeRotation || !globeEl.current) return;
     const globe = globeEl.current;
@@ -143,6 +172,7 @@ export default function App() {
     return () => cancelAnimationFrame(animationId);
   }, [globeRotation]);
 
+  // Filter and process data
   const filteredEvents = useMemo(() => {
     return events.filter(event => filters[event.category]).slice(0, maxPoints);
   }, [events, filters, maxPoints]);
@@ -153,7 +183,8 @@ export default function App() {
     return filteredEvents.filter(e => 
       e.description?.toLowerCase().includes(q) ||
       e.type?.toLowerCase().includes(q) ||
-      e.category?.toLowerCase().includes(q)
+      e.category?.toLowerCase().includes(q) ||
+      e.source?.toLowerCase().includes(q)
     );
   }, [filteredEvents, searchQuery]);
 
@@ -166,52 +197,30 @@ export default function App() {
     return sorted.slice(0, cutoffIndex + 1);
   }, [searchFilteredEvents, timelinePosition]);
 
-  // Generate synthetic end points for arcs/paths visualization when data doesn't have them
+  // Generate synthetic destinations
   const eventsWithDestinations = useMemo(() => {
     return timelineEvents.map((e, idx) => {
-      if (e.endLat !== undefined && e.endLon !== undefined) {
-        return e;
-      }
-      // Generate random destination for demo (in real app, this would come from API)
+      if (e.endLat !== undefined && e.endLon !== undefined) return e;
       const destLat = e.lat + (Math.random() - 0.5) * 30;
       const destLon = e.lon + (Math.random() - 0.5) * 30;
       return { ...e, endLat: destLat, endLon: destLon };
     });
   }, [timelineEvents]);
 
-  // Valid events for visualization (non-zero coordinates)
   const validEvents = useMemo(() => {
     return eventsWithDestinations.filter(e => e.lat !== 0 && e.lon !== 0 && !isNaN(e.lat) && !isNaN(e.lon));
   }, [eventsWithDestinations]);
 
-  // Arcs
   const arcData = useMemo(() => {
     if (!showArcs) return [];
-    return validEvents
-      .filter(e => e.endLat !== undefined && e.endLat !== 0)
-      .slice(0, 100)
-      .map(e => ({
-        startLat: e.lat,
-        startLng: e.lon,
-        endLat: e.endLat!,
-        endLng: e.endLon!,
-        color: categoryColors[e.category]
-      }));
+    return validEvents.filter(e => e.endLat !== 0).slice(0, 100).map(e => ({
+      startLat: e.lat, startLng: e.lon, endLat: e.endLat!, endLng: e.endLon!, color: categoryColors[e.category]
+    }));
   }, [validEvents, showArcs]);
 
-  // HexBin - aggregate points
-  const hexBinPointsData = useMemo(() => {
-    if (!showHexBin) return [];
-    return validEvents;
-  }, [validEvents, showHexBin]);
+  const hexBinPointsData = useMemo(() => showHexBin ? validEvents : [], [validEvents, showHexBin]);
+  const ringsData = useMemo(() => showRings ? validEvents.slice(0, 300) : [], [validEvents, showRings]);
 
-  // Rings
-  const ringsData = useMemo(() => {
-    if (!showRings) return [];
-    return validEvents.slice(0, 300);
-  }, [validEvents, showRings]);
-
-  // Polygons - region aggregation
   const polygonsData = useMemo(() => {
     if (!showPolygons) return [];
     const regions: Record<string, any> = {};
@@ -219,34 +228,37 @@ export default function App() {
       const latKey = Math.floor(e.lat / 10) * 10;
       const lonKey = Math.floor(e.lon / 10) * 10;
       const key = `${latKey}-${lonKey}`;
-      if (!regions[key]) {
-        regions[key] = { lat: latKey + 5, lng: lonKey + 5, points: [], count: 0 };
-      }
+      if (!regions[key]) regions[key] = { lat: latKey + 5, lng: lonKey + 5, points: [], count: 0 };
       regions[key].points.push(e);
       regions[key].count++;
     });
     return Object.values(regions).filter((r: any) => r.count > 0);
   }, [validEvents, showPolygons]);
 
-  // Paths
   const pathsData = useMemo(() => {
     if (!showPaths) return [];
-    return validEvents
-      .filter(e => e.endLat !== undefined && e.endLat !== 0)
-      .slice(0, 50)
-      .map(e => ({
-        path: [[e.lat, e.lon], [e.endLat!, e.endLon!]],
-        color: categoryColors[e.category]
-      }));
+    return validEvents.filter(e => e.endLat !== 0).slice(0, 50).map(e => ({
+      path: [[e.lat, e.lon], [e.endLat!, e.endLon!]], color: categoryColors[e.category]
+    }));
   }, [validEvents, showPaths]);
 
-  // Heatmap data
-  const heatmapsData = useMemo(() => {
-    if (!showHeatmap) return [];
-    return [validEvents]; // Single heatmap dataset
-  }, [validEvents, showHeatmap]);
+  const heatmapsData = useMemo(() => showHeatmap ? [validEvents] : [], [validEvents, showHeatmap]);
 
   const bgColor = globeTheme === 'dark' ? '#000011' : '#f0f0f0';
+
+  // Handle point click - show detailed info
+  const handlePointClick = useCallback((point: ConflictEvent) => {
+    setSelectedEvent(point);
+  }, []);
+
+  // Handle hover
+  const handleHover = useCallback((hoverObj: any) => {
+    if (hoverObj && hoverObj.type === 'hover' && hoverObj.object) {
+      setHoveredEvent(hoverObj.object);
+    } else {
+      setHoveredEvent(null);
+    }
+  }, []);
 
   return (
     <div style={{ width: "100vw", height: "100vh", background: bgColor, position: 'relative', overflow: 'hidden' }}>
@@ -264,7 +276,7 @@ export default function App() {
         cloudsUrl={showClouds ? CLOUDS : undefined}
         cloudsOpacity={0.4}
         
-        // Points (main visualization)
+        // Points - Interactive
         pointsData={validEvents}
         pointLat={(d: any) => d.lat}
         pointLng={(d: any) => d.lon}
@@ -273,6 +285,10 @@ export default function App() {
         pointRadius={pointSize / 100}
         pointsMerge={enableClustering}
         pointResolution={pointPrecision}
+        
+        // Click handler
+        onPointClick={handlePointClick}
+        onPointHover={handleHover}
         
         // HexBin
         hexBinPointsData={hexBinPointsData}
@@ -298,7 +314,7 @@ export default function App() {
         ringRadius={0.3}
         ringResolution={16}
         
-        // Polygons (from hexbin aggregation)
+        // Polygons
         polygonsData={polygonsData}
         polygonCapColor={(d: any) => {
           const count = d.count || d.points?.length || 0;
@@ -351,42 +367,35 @@ export default function App() {
         labelColor={() => 'rgba(255,255,255,0.8)'}
         labelAltitude={0.02}
         
-        // Interactions
-        onHover={(hoverObj: any) => {
-          setHoverInfo(hoverObj && hoverObj.type === 'hover' ? hoverObj : null);
-        }}
-        onPointClick={(point: any) => setSelectedEvent(point)}
-        
-        // Performance
         animateIn={true}
         waitForGlobeReady={true}
         enablePointerInteraction={true}
       />
 
-      {hoverInfo && hoverInfo.object && (
+      {/* Hover Card - Shows on hover */}
+      {hoveredEvent && !selectedEvent && (
         <div style={{
-          position: 'absolute', bottom: '100px', left: '50%', transform: 'translateX(-50%)',
-          background: 'rgba(0,0,0,0.9)', borderRadius: '8px', padding: '12px 16px',
-          color: 'white', fontSize: '0.85rem', maxWidth: '320px', zIndex: 150,
-          border: `2px solid ${categoryColors[hoverInfo.object.category] || '#fff'}`
+          position: 'absolute', bottom: '120px', left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(10,10,20,0.95)', borderRadius: '12px', padding: '16px 20px',
+          color: 'white', minWidth: '300px', maxWidth: '400px', zIndex: 150,
+          border: `2px solid ${categoryColors[hoveredEvent.category]}`,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
         }}>
-          <div style={{ fontWeight: 'bold', marginBottom: '4px', fontSize: '1rem' }}>
-            {categoryEmoji[hoverInfo.object.category]} {hoverInfo.object.type}
-          </div>
-          <div style={{ color: '#aaa', fontSize: '0.75rem', marginBottom: '6px' }}>
-            {hoverInfo.object.date} • {hoverInfo.object.category}
-          </div>
-          {hoverInfo.object.description && (
-            <div style={{ fontSize: '0.8rem', lineHeight: '1.4' }}>
-              {hoverInfo.object.description.substring(0, 150)}
-              {hoverInfo.object.description.length > 150 ? '...' : ''}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+            <span style={{ fontSize: '1.5rem' }}>{categoryEmoji[hoveredEvent.category]}</span>
+            <div>
+              <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{hoveredEvent.type}</div>
+              <div style={{ fontSize: '0.75rem', color: categoryColors[hoveredEvent.category] }}>{hoveredEvent.category.toUpperCase()}</div>
             </div>
-          )}
-          {hoverInfo.object.source && (
-            <div style={{ marginTop: '8px', fontSize: '0.7rem', color: '#888' }}>
-              📡 {hoverInfo.object.source}
-            </div>
-          )}
+          </div>
+          <div style={{ fontSize: '0.8rem', color: '#aaa', marginBottom: '8px' }}>{hoveredEvent.date}</div>
+          <div style={{ fontSize: '0.85rem', lineHeight: '1.4', marginBottom: '8px' }}>
+            {hoveredEvent.description?.substring(0, 120)}...
+          </div>
+          <div style={{ fontSize: '0.7rem', color: '#666', display: 'flex', justifyContent: 'space-between' }}>
+            <span>📍 {hoveredEvent.lat.toFixed(2)}, {hoveredEvent.lon.toFixed(2)}</span>
+            <span style={{ color: '#4a9' }}>Click for details →</span>
+          </div>
         </div>
       )}
 
@@ -394,22 +403,20 @@ export default function App() {
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0,
         padding: '16px 24px',
-        background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)',
+        background: 'linear-gradient(to bottom, rgba(0,0,0,0.9), transparent)',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         zIndex: 100
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button onClick={() => setShowSidebar(p => !p)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', padding: '8px 12px', color: 'white', cursor: 'pointer' }}>☰</button>
           <div>
-            <h1 style={{ margin: 0, fontSize: '1.5rem', color: 'white', fontWeight: 600 }}>⚔️ Conflict Globe</h1>
-            <p style={{ margin: 0, color: '#888', fontSize: '0.8rem' }}>{validEvents.length} events • {autoRefresh ? '🔄' : '⏸️'}</p>
+            <h1 style={{ margin: 0, fontSize: '1.5rem', color: 'white', fontWeight: 600, letterSpacing: '1px' }}>⚔️ CONFLICT GLOBE</h1>
+            <p style={{ margin: 0, color: '#888', fontSize: '0.75rem' }}>{validEvents.length} ACTIVE EVENTS • {autoRefresh ? 'LIVE' : 'STATIC'}</p>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={loadData} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', padding: '8px 12px', color: 'white', cursor: 'pointer' }}>🔄</button>
-          <button onClick={() => setGlobeTheme(t => t === 'dark' ? 'light' : 'dark')} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', padding: '8px 12px', color: 'white', cursor: 'pointer' }}>
-            {globeTheme === 'dark' ? '☀️' : '🌙'}
-          </button>
+          <button onClick={() => setGlobeTheme(t => t === 'dark' ? 'light' : 'dark')} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', padding: '8px 12px', color: 'white', cursor: 'pointer' }}>{globeTheme === 'dark' ? '☀️' : '🌙'}</button>
           <button onClick={() => setGlobeRotation(r => !r)} style={{ background: globeRotation ? '#e74c3c' : 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', padding: '8px 12px', color: 'white', cursor: 'pointer' }}>🔁</button>
         </div>
       </div>
@@ -417,63 +424,66 @@ export default function App() {
       {/* Timeline */}
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '16px 24px', background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)', zIndex: 100 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <span style={{ color: 'white', fontSize: '0.9rem' }}>📅 Timeline</span>
-          <span style={{ color: '#888', fontSize: '0.8rem' }}>{validEvents.length} events</span>
+          <span style={{ color: 'white', fontSize: '0.9rem' }}>📅 TIMELINE</span>
+          <span style={{ color: '#888', fontSize: '0.8rem' }}>{validEvents.length} EVENTS</span>
         </div>
         <input type="range" min="0" max="100" value={timelinePosition} onChange={(e) => setTimelinePosition(Number(e.target.value))} style={{ width: '100%', cursor: 'pointer' }} />
       </div>
 
       {/* Sidebar */}
       {showSidebar && (
-        <div style={{ position: 'absolute', top: '80px', left: '16px', width: isMobile ? 'calc(100% - 32px)' : '320px', maxHeight: 'calc(100vh - 180px)', background: 'rgba(15,15,20,0.95)', borderRadius: '12px', padding: '16px', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', zIndex: 100 }}>
-          <div style={{ marginBottom: '16px' }}>
-            <input type="text" placeholder="🔍 Search..." onChange={(e) => setSearchQuery(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: 'none', background: 'rgba(255,255,255,0.1)', color: 'white' }} />
+        <div style={{ position: 'absolute', top: '80px', left: '16px', width: isMobile ? 'calc(100% - 32px)' : '340px', maxHeight: 'calc(100vh - 180px)', background: 'rgba(10,10,20,0.95)', borderRadius: '12px', padding: '20px', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', zIndex: 100 }}>
+          <div style={{ marginBottom: '20px' }}>
+            <input type="text" placeholder="🔍 Search events..." onChange={(e) => setSearchQuery(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'white', fontSize: '0.9rem' }} />
           </div>
 
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '8px' }}>GLOBE</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: '10px', letterSpacing: '1px' }}>GLOBE LAYERS</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', color: 'white', fontSize: '0.9rem' }}>
                 <input type="checkbox" checked={showAtmosphere} onChange={(e) => setShowAtmosphere(e.target.checked)} /> 🌫️ Atmosphere
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
-                <input type="checkbox" checked={showGraticules} onChange={(e) => setShowGraticules(e.target.checked)} /> 🌍 Graticules
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', color: 'white', fontSize: '0.9rem' }}>
+                <input type="checkbox" checked={showGraticules} onChange={(e) => setShowGraticules(e.target.checked)} /> 🌍 Grid Lines
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', color: 'white', fontSize: '0.9rem' }}>
                 <input type="checkbox" checked={showClouds} onChange={(e) => setShowClouds(e.target.checked)} /> ☁️ Clouds
               </label>
             </div>
           </div>
 
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '8px' }}>VISUALIZATIONS</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
-                <input type="checkbox" checked={showHexBin} onChange={(e) => setShowHexBin(e.target.checked)} /> ⬡ HexBins
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: '10px', letterSpacing: '1px' }}>DATA VISUALIZATIONS</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', color: 'white', fontSize: '0.9rem' }}>
+                <input type="checkbox" checked={showHexBin} onChange={(e) => setShowHexBin(e.target.checked)} /> ⬡ Heat Clusters
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
-                <input type="checkbox" checked={showRings} onChange={(e) => setShowRings(e.target.checked)} /> ⭕ Rings
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', color: 'white', fontSize: '0.9rem' }}>
+                <input type="checkbox" checked={showRings} onChange={(e) => setShowRings(e.target.checked)} /> ⭕ Pulse Rings
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
-                <input type="checkbox" checked={showPolygons} onChange={(e) => setShowPolygons(e.target.checked)} /> 🗺️ Polygons
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', color: 'white', fontSize: '0.9rem' }}>
+                <input type="checkbox" checked={showPolygons} onChange={(e) => setShowPolygons(e.target.checked)} /> 🗺️ Regions
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
-                <input type="checkbox" checked={showHeatmap} onChange={(e) => setShowHeatmap(e.target.checked)} /> 🔥 Heatmap
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', color: 'white', fontSize: '0.9rem' }}>
+                <input type="checkbox" checked={showHeatmap} onChange={(e) => setShowHeatmap(e.target.checked)} /> 🔥 Density Map
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
-                <input type="checkbox" checked={showArcs} onChange={(e) => setShowArcs(e.target.checked)} /> 🏹 Arcs (needs endLat/endLon)
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', color: 'white', fontSize: '0.9rem' }}>
+                <input type="checkbox" checked={showArcs} onChange={(e) => setShowArcs(e.target.checked)} /> 🏹 Connections
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'white' }}>
-                <input type="checkbox" checked={showPaths} onChange={(e) => setShowPaths(e.target.checked)} /> 🛤️ Paths (needs endLat/endLon)
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', color: 'white', fontSize: '0.9rem' }}>
+                <input type="checkbox" checked={showPaths} onChange={(e) => setShowPaths(e.target.checked)} /> 🛤️ Movement
               </label>
             </div>
           </div>
 
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '8px' }}>CATEGORIES</div>
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: '10px', letterSpacing: '1px' }}>CATEGORIES</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {Object.keys(filters).map(cat => (
-                <button key={cat} onClick={() => setFilters(f => ({ ...f, [cat]: !f[cat] }))} style={{ background: filters[cat] ? categoryColors[cat] : 'rgba(255,255,255,0.1)', border: 'none', padding: '4px 10px', borderRadius: '12px', color: 'white', fontSize: '0.75rem', cursor: 'pointer', opacity: filters[cat] ? 1 : 0.5 }}>
+                <button key={cat} onClick={() => setFilters(f => ({ ...f, [cat]: !f[cat] }))} 
+                  style={{ background: filters[cat] ? categoryColors[cat] : 'rgba(255,255,255,0.1)', 
+                    border: 'none', padding: '6px 12px', borderRadius: '16px', color: 'white', 
+                    fontSize: '0.75rem', cursor: 'pointer', opacity: filters[cat] ? 1 : 0.4 }}>
                   {categoryEmoji[cat]} {cat}
                 </button>
               ))}
@@ -481,57 +491,95 @@ export default function App() {
           </div>
 
           <div style={{ marginBottom: '16px' }}>
-            <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '8px' }}>OPTIONS</div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', cursor: 'pointer', color: 'white' }}>
-              <input type="checkbox" checked={enableClustering} onChange={(e) => setEnableClustering(e.target.checked)} /> 📍 Clustering
+            <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: '8px' }}>OPTIONS</div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', cursor: 'pointer', color: 'white', fontSize: '0.9rem' }}>
+              <input type="checkbox" checked={enableClustering} onChange={(e) => setEnableClustering(e.target.checked)} /> 📍 Point Clustering
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', cursor: 'pointer', color: 'white' }}>
-              <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} /> 🔄 Auto-refresh
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', cursor: 'pointer', color: 'white', fontSize: '0.9rem' }}>
+              <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} /> 🔄 Auto Refresh
             </label>
           </div>
 
           <div style={{ marginBottom: '12px' }}>
-            <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '4px' }}>Max Points: {maxPoints}</div>
+            <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: '4px' }}>MAX POINTS: {maxPoints}</div>
             <input type="range" min="50" max="500" value={maxPoints} onChange={(e) => setMaxPoints(Number(e.target.value))} style={{ width: '100%' }} />
           </div>
           <div style={{ marginBottom: '12px' }}>
-            <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '4px' }}>Point Size: {pointSize}</div>
+            <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: '4px' }}>POINT SIZE: {pointSize}</div>
             <input type="range" min="1" max="10" value={pointSize} onChange={(e) => setPointSize(Number(e.target.value))} style={{ width: '100%' }} />
           </div>
           {autoRefresh && (
             <div style={{ marginBottom: '12px' }}>
-              <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '4px' }}>Refresh: {refreshInterval}s</div>
+              <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: '4px' }}>REFRESH: {refreshInterval}s</div>
               <input type="range" min="30" max="300" value={refreshInterval} onChange={(e) => setRefreshInterval(Number(e.target.value))} style={{ width: '100%' }} />
             </div>
           )}
-          <div style={{ color: '#666', fontSize: '0.7rem' }}>{searchFilteredEvents.length} events</div>
         </div>
       )}
 
+      {/* Detailed Event Modal */}
       {selectedEvent && (
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'rgba(15,15,20,0.98)', borderRadius: '12px', padding: '24px', maxWidth: '450px', width: '90%', border: `2px solid ${categoryColors[selectedEvent.category]}`, zIndex: 200 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <span style={{ fontSize: '2rem' }}>{categoryEmoji[selectedEvent.category]}</span>
-            <button onClick={() => setSelectedEvent(null)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer' }}>✕</button>
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          background: 'rgba(10,10,20,0.98)', borderRadius: '16px', padding: '28px',
+          maxWidth: '500px', width: '90%', border: `2px solid ${categoryColors[selectedEvent.category]}`,
+          zIndex: 200, boxShadow: '0 20px 60px rgba(0,0,0,0.8)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <span style={{ fontSize: '3rem' }}>{categoryEmoji[selectedEvent.category]}</span>
+              <div>
+                <h2 style={{ margin: 0, color: 'white', fontSize: '1.4rem' }}>{selectedEvent.type}</h2>
+                <div style={{ display: 'inline-block', background: categoryColors[selectedEvent.category], padding: '4px 12px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 'bold', marginTop: '4px' }}>
+                  {selectedEvent.category.toUpperCase()}
+                </div>
+              </div>
+            </div>
+            <button onClick={() => setSelectedEvent(null)} style={{ background: 'none', border: 'none', color: '#888', fontSize: '1.5rem', cursor: 'pointer' }}>✕</button>
           </div>
-          <h2 style={{ margin: '0 0 8px 0', color: 'white' }}>{selectedEvent.type}</h2>
-          <div style={{ display: 'inline-block', background: categoryColors[selectedEvent.category], padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', marginBottom: '12px' }}>{selectedEvent.category.toUpperCase()}</div>
-          <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: '12px' }}>{selectedEvent.date}</div>
-          <div style={{ color: 'white', fontSize: '0.9rem', marginBottom: '12px' }}>{selectedEvent.description}</div>
-          <div style={{ color: '#666', fontSize: '0.8rem' }}>📍 {selectedEvent.lat.toFixed(4)}, {selectedEvent.lon.toFixed(4)}</div>
-          {selectedEvent.source && <div style={{ color: '#666', fontSize: '0.8rem', marginTop: '4px' }}>Source: {selectedEvent.source}</div>}
-          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #333' }}>
+          
+          <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: '16px' }}>{selectedEvent.date}</div>
+          
+          <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
+            <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: '6px', textTransform: 'uppercase' }}>Description</div>
+            <div style={{ color: 'white', fontSize: '0.95rem', lineHeight: '1.6' }}>{selectedEvent.description}</div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px' }}>
+              <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: '4px' }}>COORDINATES</div>
+              <div style={{ color: 'white', fontSize: '0.9rem' }}>{selectedEvent.lat.toFixed(4)}, {selectedEvent.lon.toFixed(4)}</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px' }}>
+              <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: '4px' }}>SOURCE</div>
+              <div style={{ color: 'white', fontSize: '0.9rem' }}>{selectedEvent.source || 'Unknown'}</div>
+            </div>
+          </div>
+
+          <div style={{ background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', marginBottom: '20px' }}>
+            <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: '6px' }}>CATEGORY INFO</div>
+            <div style={{ color: '#aaa', fontSize: '0.85rem' }}>{categoryInfo[selectedEvent.category]}</div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <button onClick={() => {
               const blob = new Blob([JSON.stringify(selectedEvent, null, 2)], { type: "application/json" });
               saveAs(blob, `event-${selectedEvent.id}.json`);
-            }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', padding: '8px 16px', borderRadius: '4px', color: 'white', cursor: 'pointer' }}>
-              💾 Export
+            }} style={{ background: categoryColors[selectedEvent.category], border: 'none', padding: '12px 20px', borderRadius: '8px', color: 'white', cursor: 'pointer', fontWeight: 'bold' }}>
+              💾 Export JSON
+            </button>
+            <button onClick={() => {
+              const geojson = { type: 'Feature', geometry: { type: 'Point', coordinates: [selectedEvent.lon, selectedEvent.lat] }, properties: selectedEvent };
+              const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: "application/json" });
+              saveAs(blob, `event-${selectedEvent.id}.geojson`);
+            }} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', padding: '12px 20px', borderRadius: '8px', color: 'white', cursor: 'pointer' }}>
+              🌍 Export GeoJSON
             </button>
           </div>
         </div>
       )}
 
-      {loading && <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: 'white', fontSize: '1.5rem' }}>Loading...</div>}
+      {loading && <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: 'white', fontSize: '1.5rem' }}>Loading OSINT Data...</div>}
     </div>
   );
 }
