@@ -7,12 +7,12 @@ A real-time 3D OSINT visualization platform for global conflict and geopolitical
 
 ## Features
 
-### 🔴 Real-Time Data
+### Real-Time Data
 - Live OSINT feed aggregation from multiple sources
 - WebSocket support for real-time updates
 - Auto-refresh with configurable intervals
 
-### 🗺️ Visualizations
+### Visualizations
 - **Points** - Individual event markers with category coloring
 - **HexBins** - Hexagonal clustering for density analysis
 - **Heatmaps** - Event density visualization
@@ -21,7 +21,7 @@ A real-time 3D OSINT visualization platform for global conflict and geopolitical
 - **Paths** - Movement tracking
 - **Polygons** - Regional aggregation
 
-### 🎨 Globe Features
+### Globe Features
 - Dark/Light themes
 - Atmosphere effect
 - Cloud layer
@@ -30,7 +30,7 @@ A real-time 3D OSINT visualization platform for global conflict and geopolitical
 - Auto-rotation
 - Point clustering for performance
 
-### 🎯 Interactions
+### Interactions
 - Click any point for detailed event information
 - Hover tooltips with quick preview
 - Timeline slider for temporal filtering
@@ -38,7 +38,7 @@ A real-time 3D OSINT visualization platform for global conflict and geopolitical
 - Full-text search
 - Export to JSON/GeoJSON
 
-### 📊 Categories
+### Categories
 - ⚔️ Conflict
 - 🚢 Maritime
 - ✈️ Air
