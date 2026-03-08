@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui"
   },
   "dependencies": {
     "file-saver": "^2.0.5",
@@ -17,6 +19,7 @@
     "three": "0.150.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.40.0",
     "@types/file-saver": "^2.0.7",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
