@@ -114,11 +114,11 @@ The development client will hot-reload on file changes. The server runs with `ts
 Create a `.env` file in the `server/` directory. All API keys are optional — many data feeds are available without authentication.
 
 ```env
-# ── API Keys (optional) ─────────────────────────────────────────────────────
+# ── API Keys (optional)
 NEWS_API_KEY=your_key_here
 GDELT_KEY=your_key_here
 
-# ── Server ───────────────────────────────────────────────────────────────────
+# ── Server 
 PORT=8080
 NODE_ENV=development
 ```
