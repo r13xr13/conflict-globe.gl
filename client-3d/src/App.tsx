@@ -231,6 +231,22 @@ export default function App() {
   const [mapboxStyle, setMapboxStyle] = useState<keyof typeof MAPBOX_TILES>('dark');
   const [useMapbox, setUseMapbox] = useState(false);
   
+  // Live Feed
+  const [showLiveFeed, setShowLiveFeed] = useState(false);
+  const [liveFeedItems, setLiveFeedItems] = useState<{id: string, time: Date, message: string, type: string, severity: string}[]>([]);
+  
+  // Drawing
+  const [showDrawTools, setShowDrawTools] = useState(false);
+  const [drawMode, setDrawMode] = useState<'none' | 'circle' | 'polygon' | 'line'>('none');
+  const [drawnShapes, setDrawnShapes] = useState<{id: string, type: string, points: [number, number][], color: string}[]>([]);
+  
+  // Threat Assessment
+  const [threatScore, setThreatScore] = useState(0);
+  const [threatLevel, setThreatLevel] = useState<'low' | 'medium' | 'high' | 'critical'>('low');
+  
+  // Help
+  const [showHelp, setShowHelp] = useState(false);
+  
   const tilesData = useMemo(() => {
     if (!useMapbox || !mapboxToken) return undefined;
     return [{
@@ -632,6 +648,37 @@ ${Object.entries(analytics.byCategory).map(([cat, count]) => `${cat}: ${count} (
       avgPerDay: Object.keys(byDay).length > 0 ? (validEvents.length / Object.keys(byDay).length).toFixed(1) : 0
     };
   }, [validEvents]);
+
+  // Calculate threat score
+  useMemo(() => {
+    const critical = analytics.bySeverity.critical || 0;
+    const high = analytics.bySeverity.high || 0;
+    const medium = analytics.bySeverity.medium || 0;
+    const score = Math.min(100, (critical * 15) + (high * 8) + (medium * 3) + (analytics.total * 0.5));
+    setThreatScore(Math.round(score));
+    if (score >= 75) setThreatLevel('critical');
+    else if (score >= 50) setThreatLevel('high');
+    else if (score >= 25) setThreatLevel('medium');
+    else setThreatLevel('low');
+  }, [analytics]);
+
+  // Simulate live feed updates
+  useMemo(() => {
+    if (!showLiveFeed) return;
+    const categories = Object.keys(categoryColors);
+    const types = ['Alert', 'Update', 'Intelligence', 'Warning', 'Breaking'];
+    const interval = setInterval(() => {
+      const newItem = {
+        id: Date.now().toString(),
+        time: new Date(),
+        message: `New ${categories[Math.floor(Math.random() * categories.length)]} event detected in region ${Math.floor(Math.random() * 10)}`,
+        type: types[Math.floor(Math.random() * types.length)],
+        severity: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)]
+      };
+      setLiveFeedItems(prev => [newItem, ...prev].slice(0, 50));
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [showLiveFeed]);
 
   const entityGraph = useMemo(() => {
     const nodes: any[] = [];
@@ -1381,6 +1428,27 @@ ${Object.entries(analytics.byCategory).map(([cat, count]) => `${cat}: ${count} (
             }}>
               📄
             </button>
+            <button onClick={() => setShowLiveFeed(p => !p)} style={{ 
+              background: showLiveFeed ? '#e74c3c' : 'rgba(255,255,255,0.1)', 
+              border: 'none', borderRadius: '4px', padding: '6px 10px', color: 'white', cursor: 'pointer',
+              fontSize: '0.8rem'
+            }}>
+              📡
+            </button>
+            <button onClick={() => setShowDrawTools(p => !p)} style={{ 
+              background: showDrawTools ? '#f39c12' : 'rgba(255,255,255,0.1)', 
+              border: 'none', borderRadius: '4px', padding: '6px 10px', color: 'white', cursor: 'pointer',
+              fontSize: '0.8rem'
+            }}>
+              ✏️
+            </button>
+            <button onClick={() => setShowHelp(p => !p)} style={{ 
+              background: showHelp ? '#3498db' : 'rgba(255,255,255,0.1)', 
+              border: 'none', borderRadius: '4px', padding: '6px 10px', color: 'white', cursor: 'pointer',
+              fontSize: '0.8rem'
+            }}>
+              ⌨️
+            </button>
             <button onClick={() => {
               const state = { theme: globeTheme, filters, view: globeEl.current?.pointOfView() };
               navigator.clipboard.writeText(`${window.location.origin}?s=${btoa(JSON.stringify(state))}`);
@@ -1393,6 +1461,43 @@ ${Object.entries(analytics.byCategory).map(([cat, count]) => `${cat}: ${count} (
               📤
             </button>
           </div>
+          
+          {/* Threat Level Indicator */}
+          <div style={{
+            position: 'absolute',
+            top: '50px',
+            right: '120px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: 'rgba(0,0,0,0.7)',
+            padding: '6px 12px',
+            borderRadius: '20px',
+            zIndex: 50
+          }}>
+            <span style={{ fontSize: '0.7rem', color: '#888' }}>THREAT</span>
+            <div style={{
+              width: '10px',
+              height: '10px',
+              borderRadius: '50%',
+              background: threatLevel === 'critical' ? '#e74c3c' : 
+                         threatLevel === 'high' ? '#e67e22' : 
+                         threatLevel === 'medium' ? '#f39c12' : '#27ae60',
+              boxShadow: `0 0 10px ${threatLevel === 'critical' ? '#e74c3c' : 
+                         threatLevel === 'high' ? '#e67e22' : 
+                         threatLevel === 'medium' ? '#f39c12' : '#27ae60'}`
+            }} />
+            <span style={{ 
+              color: threatLevel === 'critical' ? '#e74c3c' : 
+                     threatLevel === 'high' ? '#e67e22' : 
+                     threatLevel === 'medium' ? '#f39c12' : '#27ae60',
+              fontSize: '0.75rem',
+              fontWeight: 'bold',
+              textTransform: 'uppercase'
+            }}>
+              {threatLevel} ({threatScore})
+            </span>
+          </div>
         </div>
 
         <div style={{ flex: 1, position: 'relative' }}>
@@ -1401,7 +1506,7 @@ ${Object.entries(analytics.byCategory).map(([cat, count]) => `${cat}: ${count} (
             return <GlobeAny
               ref={globeEl}
             globeImageUrl={GLOBE_STYLES[globeTheme] || GLOBE_DARK}
-            backgroundImageUrl={globeTheme === 'dark' ? GLOBE_NIGHT : ''}
+            backgroundImageUrl={GLOBE_NIGHT}
             backgroundColor={bgColor}
             showAtmosphere={showAtmosphere}
             showGraticules={showGraticules}
@@ -2218,6 +2323,192 @@ ${Object.entries(analytics.byCategory).map(([cat, count]) => `${cat}: ${count} (
           >
             📥 Download Report (Markdown)
           </button>
+        </div>
+      )}
+
+      {/* Live Feed Panel */}
+      {showLiveFeed && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '450px',
+          maxHeight: '70%',
+          background: 'rgba(10, 10, 25, 0.98)',
+          borderRadius: '16px',
+          border: '1px solid rgba(255,255,255,0.1)',
+          zIndex: 300,
+          padding: '20px',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ margin: 0, color: 'white', fontSize: '1.1rem' }}>📡 Live Incident Feed</h2>
+            <button onClick={() => setShowLiveFeed(false)} style={{
+              background: 'none', border: 'none', color: '#666', fontSize: '1.2rem', cursor: 'pointer'
+            }}>✕</button>
+          </div>
+          
+          <div style={{ flex: 1, overflow: 'auto' }}>
+            {liveFeedItems.length === 0 ? (
+              <div style={{ textAlign: 'center', color: '#666', padding: '40px' }}>
+                Waiting for incidents...
+              </div>
+            ) : (
+              liveFeedItems.map(item => (
+                <div key={item.id} style={{
+                  background: item.severity === 'high' ? 'rgba(231, 76, 60, 0.1)' : 
+                             item.severity === 'medium' ? 'rgba(243, 156, 18, 0.1)' : 'rgba(255,255,255,0.03)',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  marginBottom: '8px',
+                  borderLeft: `3px solid ${item.severity === 'high' ? '#e74c3c' : item.severity === 'medium' ? '#f39c12' : '#3498db'}`
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={{ color: '#e74c3c', fontSize: '0.7rem', fontWeight: 'bold' }}>{item.type}</span>
+                    <span style={{ color: '#666', fontSize: '0.65rem' }}>{item.time.toLocaleTimeString()}</span>
+                  </div>
+                  <div style={{ color: '#ccc', fontSize: '0.8rem' }}>{item.message}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Draw Tools Panel */}
+      {showDrawTools && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '350px',
+          background: 'rgba(10, 10, 25, 0.98)',
+          borderRadius: '16px',
+          border: '1px solid rgba(255,255,255,0.1)',
+          zIndex: 300,
+          padding: '20px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ margin: 0, color: 'white', fontSize: '1.1rem' }}>✏️ Drawing Tools</h2>
+            <button onClick={() => setShowDrawTools(false)} style={{
+              background: 'none', border: 'none', color: '#666', fontSize: '1.2rem', cursor: 'pointer'
+            }}>✕</button>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+            {(['none', 'circle', 'polygon', 'line'] as const).map(mode => (
+              <button
+                key={mode}
+                onClick={() => setDrawMode(mode)}
+                style={{
+                  flex: 1,
+                  background: drawMode === mode ? '#f39c12' : 'rgba(255,255,255,0.1)',
+                  border: 'none',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  textTransform: 'capitalize'
+                }}
+              >
+                {mode === 'none' && '✋'}
+                {mode === 'circle' && '⭕'}
+                {mode === 'polygon' && '⬡'}
+                {mode === 'line' && '📏'}
+                {' '}{mode}
+              </button>
+            ))}
+          </div>
+          
+          <div style={{ color: '#666', fontSize: '0.75rem', textAlign: 'center' }}>
+            {drawMode === 'none' ? 'Select a tool to start drawing' : `Click on the globe to draw ${drawMode}`}
+          </div>
+          
+          {drawnShapes.length > 0 && (
+            <div style={{ marginTop: '16px' }}>
+              <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: '8px' }}>DRAWN SHAPES ({drawnShapes.length})</div>
+              {drawnShapes.slice(0, 5).map(shape => (
+                <div key={shape.id} style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  marginBottom: '4px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ color: '#aaa', fontSize: '0.75rem' }}>{shape.type} - {shape.points.length} pts</span>
+                  <button 
+                    onClick={() => setDrawnShapes(s => s.filter(x => x.id !== shape.id))}
+                    style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer' }}
+                  >✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Help Panel */}
+      {showHelp && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '400px',
+          background: 'rgba(10, 10, 25, 0.98)',
+          borderRadius: '16px',
+          border: '1px solid rgba(255,255,255,0.1)',
+          zIndex: 300,
+          padding: '20px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ margin: 0, color: 'white', fontSize: '1.1rem' }}>⌨️ Keyboard Shortcuts</h2>
+            <button onClick={() => setShowHelp(false)} style={{
+              background: 'none', border: 'none', color: '#666', fontSize: '1.2rem', cursor: 'pointer'
+            }}>✕</button>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            {[
+              ['1', 'Toggle left panel'],
+              ['2', 'Toggle right panel'],
+              ['3', 'Toggle timeline'],
+              ['Space', 'Play/pause timeline'],
+              ['R', 'Refresh data'],
+              ['H', 'Toggle dark/light'],
+              ['Esc', 'Close panels'],
+              ['F', 'Toggle fullscreen']
+            ].map(([key, action]) => (
+              <div key={key} style={{
+                background: 'rgba(255,255,255,0.05)',
+                padding: '10px',
+                borderRadius: '6px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <kbd style={{
+                  background: '#3498db',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  fontSize: '0.75rem',
+                  fontFamily: 'monospace'
+                }}>{key}</kbd>
+                <span style={{ color: '#aaa', fontSize: '0.75rem' }}>{action}</span>
+              </div>
+            ))}
+          </div>
+          
+          <div style={{ marginTop: '20px', color: '#666', fontSize: '0.7rem', textAlign: 'center' }}>
+            Voice Commands: "go to [location]", "zoom in/out", "dark mode", "refresh"
+          </div>
         </div>
       )}
 
