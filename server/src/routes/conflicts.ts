@@ -15,6 +15,8 @@ import { fetchEarthquakes, fetchWeatherAlerts, fetchVolcanoAlerts, fetchNuclearF
 import { fetchTwitterGeoAlerts, fetchRedditLiveThreads, fetchTelegramChannels, fetchWebIntrusionAlerts, fetchDarkWebAlerts } from "../services/social";
 import { fetchAllScrapedData, fetchEMSCearthquakes, fetchUSGSearthquakes, fetchNOAAweather, fetchOpenSkyNetwork, fetchAISreception } from "../services/scraper";
 import { fetchPublicCameras, fetchEarthCamFeeds, fetchWebCamTaxi, fetchWindyCameras } from "../services/cameras";
+import { fetchGlobalNews } from "../services/news";
+import { fetchGdeltevents } from "../services/gdelt";
 
 const router = Router();
 

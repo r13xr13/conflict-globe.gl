@@ -1069,48 +1069,45 @@ export default function App() {
             {activeLeftTab === "settings" && (
               <>
                 <div className="section">
-                  <SectionLabel>API Keys</SectionLabel>
+                  <SectionLabel>Data APIs</SectionLabel>
                   <p style={{ fontSize: 11, color: "var(--text-2)", marginBottom: 12 }}>
-                    Configure your own API keys to enhance data coverage. Keys are stored locally in your browser.
+                    Configure API keys to enhance data coverage. Keys stored locally.
                   </p>
                   
                   <div className="api-key-section">
-                    <label className="api-key-label">AISStream Key (Vessels)</label>
+                    <label className="api-key-label">AISStream (Vessels)</label>
                     <input
                       type="password"
                       className="text-input"
-                      placeholder="Enter your AISStream API key"
+                      placeholder="AISStream API key"
                       value={apiKeys.aisstream || ""}
                       onChange={e => setApiKeys(k => ({ ...k, aisstream: e.target.value }))}
                     />
-                    <div className="api-key-hint">Get free key at aisstream.io</div>
+                    <div className="api-key-hint">aisstream.io - Global ship tracking</div>
                   </div>
 
                   <div className="api-key-section">
-                    <label className="api-key-label">OpenSky Client ID</label>
+                    <label className="api-key-label">OpenSky Network (Aircraft)</label>
                     <input
                       type="text"
                       className="text-input"
-                      placeholder="OpenSky client ID"
+                      placeholder="Client ID"
                       value={apiKeys.opensky_id || ""}
                       onChange={e => setApiKeys(k => ({ ...k, opensky_id: e.target.value }))}
                     />
-                  </div>
-
-                  <div className="api-key-section">
-                    <label className="api-key-label">OpenSky Client Secret</label>
                     <input
                       type="password"
                       className="text-input"
-                      placeholder="OpenSky client secret"
+                      style={{ marginTop: 4 }}
+                      placeholder="Client Secret"
                       value={apiKeys.opensky_secret || ""}
                       onChange={e => setApiKeys(k => ({ ...k, opensky_secret: e.target.value }))}
                     />
-                    <div className="api-key-hint">Get free credentials at opensky-network.org</div>
+                    <div className="api-key-hint">opensky-network.org - Aircraft positions</div>
                   </div>
 
                   <div className="api-key-section">
-                    <label className="api-key-label">ACLED Key</label>
+                    <label className="api-key-label">ACLED (Conflict Data)</label>
                     <input
                       type="password"
                       className="text-input"
@@ -1118,19 +1115,109 @@ export default function App() {
                       value={apiKeys.acled || ""}
                       onChange={e => setApiKeys(k => ({ ...k, acled: e.target.value }))}
                     />
-                    <div className="api-key-hint">Get free key at acleddata.com</div>
+                    <div className="api-key-hint">acleddata.com - Armed conflict events</div>
                   </div>
 
                   <div className="api-key-section">
-                    <label className="api-key-label">Cesium Ion Token</label>
+                    <label className="api-key-label">NewsAPI (Headlines)</label>
                     <input
                       type="password"
                       className="text-input"
-                      placeholder="Cesium Ion access token"
+                      placeholder="NewsAPI key"
+                      value={apiKeys.newsapi || ""}
+                      onChange={e => setApiKeys(k => ({ ...k, newsapi: e.target.value }))}
+                    />
+                    <div className="api-key-hint">newsapi.org - Global news feed</div>
+                  </div>
+
+                  <div className="api-key-section">
+                    <label className="api-key-label">GDELT (Events)</label>
+                    <input
+                      type="text"
+                      className="text-input"
+                      placeholder="GDELT API key (optional)"
+                      value={apiKeys.gdelt || ""}
+                      onChange={e => setApiKeys(k => ({ ...k, gdelt: e.target.value }))}
+                    />
+                    <div className="api-key-hint">gdeltproject.org - Global events database</div>
+                  </div>
+
+                  <div className="api-key-section">
+                    <label className="api-key-label">Windy.com (Weather)</label>
+                    <input
+                      type="password"
+                      className="text-input"
+                      placeholder="Windy API key"
+                      value={apiKeys.windy || ""}
+                      onChange={e => setApiKeys(k => ({ ...k, windy: e.target.value }))}
+                    />
+                    <div className="api-key-hint">openweathermap.org - Weather data</div>
+                  </div>
+
+                  <div className="api-key-section">
+                    <label className="api-key-label">Cesium Ion (3D Tiles)</label>
+                    <input
+                      type="password"
+                      className="text-input"
+                      placeholder="Cesium Ion token"
                       value={apiKeys.cesium || ""}
                       onChange={e => setApiKeys(k => ({ ...k, cesium: e.target.value }))}
                     />
-                    <div className="api-key-hint">Get free token at cesium.com/ion</div>
+                    <div className="api-key-hint">cesium.com/ion - 3D mapping</div>
+                  </div>
+                </div>
+
+                <div className="section">
+                  <SectionLabel>Automation</SectionLabel>
+                  
+                  <div className="api-key-section">
+                    <label className="api-key-label">n8n Webhook URL</label>
+                    <input
+                      type="text"
+                      className="text-input"
+                      placeholder="https://your-n8n.com/webhook/conflicts"
+                      value={apiKeys.n8n_webhook || ""}
+                      onChange={e => setApiKeys(k => ({ ...k, n8n_webhook: e.target.value }))}
+                    />
+                    <div className="api-key-hint">Connect n8n workflows for custom data processing</div>
+                  </div>
+
+                  <div className="api-key-section">
+                    <label className="api-key-label">n8n API Key</label>
+                    <input
+                      type="password"
+                      className="text-input"
+                      placeholder="n8n API key"
+                      value={apiKeys.n8n_api_key || ""}
+                      onChange={e => setApiKeys(k => ({ ...k, n8n_api_key: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="section">
+                  <SectionLabel>MCP Server</SectionLabel>
+                  
+                  <div className="api-key-section">
+                    <label className="api-key-label">MCP Server URL</label>
+                    <input
+                      type="text"
+                      className="text-input"
+                      placeholder="https://mcp.example.com"
+                      value={apiKeys.mcp_url || ""}
+                      onChange={e => setApiKeys(k => ({ ...k, mcp_url: e.target.value }))}
+                    />
+                    <div className="api-key-hint">Model Context Protocol server for AI tool access</div>
+                  </div>
+
+                  <div className="api-key-section">
+                    <label className="api-key-label">MCP API Key</label>
+                    <input
+                      type="password"
+                      className="text-input"
+                      placeholder="MCP access token"
+                      value={apiKeys.mcp_api_key || ""}
+                      onChange={e => setApiKeys(k => ({ ...k, mcp_api_key: e.target.value }))}
+                    />
                   </div>
                 </div>
 
