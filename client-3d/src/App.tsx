@@ -67,7 +67,7 @@ interface LayerState {
 }
 
 type GlobeTheme = "dark" | "light" | "satellite" | "terrain";
-type LeftTab = "layers" | "categories" | "filters" | "import";
+type LeftTab = "layers" | "categories" | "filters" | "import" | "settings";
 type RightTab = "details" | "analytics" | "entities" | "timeline";
 type ReportType = "summary" | "detailed" | "analytics";
 type DrawMode = "none" | "circle" | "polygon" | "line";
@@ -258,6 +258,15 @@ export default function App() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<string | null>(null);
+
+  // API Keys (stored in localStorage)
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem("cg_apiKeys");
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  useEffect(() => { localStorage.setItem("cg_apiKeys", JSON.stringify(apiKeys)); }, [apiKeys]);
 
   // Feature panels
   const [showAnalytics, setShowAnalytics] = useState(false);
@@ -835,6 +844,7 @@ export default function App() {
               ["categories", "◈", "Categories"],
               ["filters", "⊟", "Filters"],
               ["import", "⊕", "Import"],
+              ["settings", "⚙", "Settings"],
             ] as [LeftTab, string, string][]).map(([tab, icon, label]) => (
               <button key={tab} className={cls("tab-btn", activeLeftTab === tab && "active")} onClick={() => setActiveLeftTab(tab)}>
                 <span className="tab-icon">{icon}</span>
@@ -1051,6 +1061,116 @@ export default function App() {
                       </div>
                     ))
                   )}
+                </div>
+              </>
+            )}
+
+            {/* ── Settings tab ── */}
+            {activeLeftTab === "settings" && (
+              <>
+                <div className="section">
+                  <SectionLabel>API Keys</SectionLabel>
+                  <p style={{ fontSize: 11, color: "var(--text-2)", marginBottom: 12 }}>
+                    Configure your own API keys to enhance data coverage. Keys are stored locally in your browser.
+                  </p>
+                  
+                  <div className="api-key-section">
+                    <label className="api-key-label">AISStream Key (Vessels)</label>
+                    <input
+                      type="password"
+                      className="text-input"
+                      placeholder="Enter your AISStream API key"
+                      value={apiKeys.aisstream || ""}
+                      onChange={e => setApiKeys(k => ({ ...k, aisstream: e.target.value }))}
+                    />
+                    <div className="api-key-hint">Get free key at aisstream.io</div>
+                  </div>
+
+                  <div className="api-key-section">
+                    <label className="api-key-label">OpenSky Client ID</label>
+                    <input
+                      type="text"
+                      className="text-input"
+                      placeholder="OpenSky client ID"
+                      value={apiKeys.opensky_id || ""}
+                      onChange={e => setApiKeys(k => ({ ...k, opensky_id: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="api-key-section">
+                    <label className="api-key-label">OpenSky Client Secret</label>
+                    <input
+                      type="password"
+                      className="text-input"
+                      placeholder="OpenSky client secret"
+                      value={apiKeys.opensky_secret || ""}
+                      onChange={e => setApiKeys(k => ({ ...k, opensky_secret: e.target.value }))}
+                    />
+                    <div className="api-key-hint">Get free credentials at opensky-network.org</div>
+                  </div>
+
+                  <div className="api-key-section">
+                    <label className="api-key-label">ACLED Key</label>
+                    <input
+                      type="password"
+                      className="text-input"
+                      placeholder="ACLED API key"
+                      value={apiKeys.acled || ""}
+                      onChange={e => setApiKeys(k => ({ ...k, acled: e.target.value }))}
+                    />
+                    <div className="api-key-hint">Get free key at acleddata.com</div>
+                  </div>
+
+                  <div className="api-key-section">
+                    <label className="api-key-label">Cesium Ion Token</label>
+                    <input
+                      type="password"
+                      className="text-input"
+                      placeholder="Cesium Ion access token"
+                      value={apiKeys.cesium || ""}
+                      onChange={e => setApiKeys(k => ({ ...k, cesium: e.target.value }))}
+                    />
+                    <div className="api-key-hint">Get free token at cesium.com/ion</div>
+                  </div>
+                </div>
+
+                <div className="section">
+                  <button 
+                    className="full-btn" 
+                    style={{ background: "var(--accent)", color: "#fff" }}
+                    onClick={() => {
+                      const count = Object.keys(apiKeys).filter(k => apiKeys[k]).length;
+                      alert(`Saved ${count} API key(s). Restart the server or rebuild the container to apply changes.`);
+                    }}
+                  >
+                    💾 Save API Keys
+                  </button>
+                  <button 
+                    className="full-btn" 
+                    style={{ marginTop: 8, background: "var(--border)", color: "var(--text)" }}
+                    onClick={() => {
+                      if (confirm("Clear all API keys?")) {
+                        setApiKeys({});
+                      }
+                    }}
+                  >
+                    🗑 Clear All Keys
+                  </button>
+                </div>
+
+                <div className="section">
+                  <SectionLabel>Current Configuration</SectionLabel>
+                  <div style={{ fontSize: 11, color: "var(--text-2)", wordBreak: "break-all" }}>
+                    {Object.keys(apiKeys).filter(k => apiKeys[k]).length === 0 ? (
+                      <div style={{ color: "var(--text-3)" }}>No custom keys configured</div>
+                    ) : (
+                      <ul style={{ paddingLeft: 16, margin: 0 }}>
+                        {Object.entries(apiKeys).filter(([, v]) => v).map(([k]) => (
+                          <li key={k} style={{ marginBottom: 4 }}>• {k}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </div>
               </>
             )}

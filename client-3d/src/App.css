@@ -267,3 +267,20 @@ input[type=date].text-input { font-family: var(--font-mono); font-size: 0.72rem;
   flex-shrink: 0;
   font-size: 12px;
 }
+
+/* API Keys Section */
+.api-key-section {
+  margin-bottom: 16px;
+}
+.api-key-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-bottom: 6px;
+}
+.api-key-hint {
+  font-size: 9px;
+  color: var(--text-3);
+  margin-top: 4px;
+}
