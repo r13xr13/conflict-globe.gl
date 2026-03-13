@@ -1,0 +1,153 @@
+{
+  "name": "Conflict Globe Integration",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "conflict-events",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - Receive Events",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "conflict-globe-events"
+    },
+    {
+      "parameters": {
+        "batchSize": 1
+      },
+      "id": "loop-items",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Process each conflict event\nconst item = $input.first();\nconst event = item.json;\n\n// Add AI analysis\nconst analysis = {\n  sentiment: event.severity === 'critical' ? 'negative' : 'neutral',\n  threatLevel: event.severity || 'medium',\n  region: detectRegion(event.lat, event.lon),\n  processed: true,\n  timestamp: new Date().toISOString()\n};\n\nfunction detectRegion(lat, lon) {\n  if (lat > 35 && lat < 70 && lon > 20 && lon < 60) return 'Europe/CIS';\n  if (lat > 10 && lat < 40 && lon > 30 && lon < 60) return 'Middle East';\n  if (lat > 0 && lat < 30 && lon > 100 && lon < 130) return 'Asia Pacific';\n  if (lat > 25 && lat < 50 && lon > -130 && lon < -60) return 'Americas';\n  return 'Other';\n}\n\nreturn { json: { ...event, analysis } };"
+      },
+      "id": "process-event",
+      "name": "Process Event",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://web:8080/api/webhook",
+        "method": "POST",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "events",
+              "value": "={{ $json }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-back",
+      "name": "Send Back to Globe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "",
+        "table": "",
+        "columns": {
+          "columnNames": ["ID", "Type", "Lat", "Lon", "Severity", "Date", "Region"]
+        },
+        "keyField": "ID",
+        "options": {}
+      },
+      "id": "google-sheets",
+      "name": "Log to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [1000, 500],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "webhook": {
+          "url": "http://localhost:5678/webhook/send-alert"
+        },
+        "method": "POST",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{ $json.type }} at {{ $json.lat }}, {{ $json.lon }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "discord-alert",
+      "name": "Discord Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1000, 700],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Webhook - Receive Events": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Process Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Event": {
+      "main": [
+        [
+          {
+            "node": "Send Back to Globe",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log to Google Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Discord Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-03-13T00:00:00.000Z",
+  "versionId": "1"
+}
