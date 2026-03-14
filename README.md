@@ -1,6 +1,6 @@
 <div align="center">
 
-# Conflict Globe 
+# Conflict Globe 🌍
 
 **A real-time 3D OSINT visualization platform for global conflict and geopolitical events**
 
@@ -78,14 +78,14 @@ Conflict Globe is an open-source intelligence (OSINT) platform that aggregates a
 
 ### npm (Easiest)
 
-Install the CLI globally and run the platform anywhere Node.js is available:
+Requires Node.js ≥ 18.
 
 ```bash
 npm install -g @c0smic/conflict-globe
 conflict-globe start
 ```
 
-The app will be available at `http://localhost:8080`.
+Open `http://localhost:8080` in your browser.
 
 ### Docker
 
@@ -99,8 +99,6 @@ open http://localhost:8080
 ```
 
 ### Local Development
-
-Requires Node.js ≥ 18.
 
 ```bash
 git clone https://github.com/r13xr13/conflict-globe.gl.git
@@ -160,6 +158,9 @@ conflict-globe.gl/
 │   │   ├── routes/     # REST API endpoints
 │   │   └── services/   # Per-source OSINT data fetchers
 │   └── package.json
+├── discord-bot/        # AI-powered Discord bot
+│   ├── index.js        # Bot commands & scheduler
+│   └── ai-agent.js     # Ollama AI integration
 ├── globe.gl/           # Vendored custom globe.gl build
 ├── Dockerfile
 └── docker-compose.yml
@@ -175,8 +176,9 @@ conflict-globe.gl/
 |---|---|
 | **Frontend** | React, Vite, react-globe.gl, Three.js, TypeScript |
 | **Backend** | Node.js, Express, TypeScript, Socket.io |
+| **Bot** | Discord.js, Ollama, node-cron |
 | **Data** | Axios, RSS parsers, REST OSINT APIs |
-| **Infrastructure** | Docker, Docker Compose |
+| **Infrastructure** | Docker, Docker Compose, Railway |
 
 ---
 
@@ -200,39 +202,24 @@ conflict-globe.gl/
 
 ---
 
+## Deployment
+
+### Railway (Cloud — Recommended)
+
+1. Connect your GitHub repo to [Railway](https://railway.app)
+2. Railway auto-detects the Dockerfile — no extra config needed
+3. Add environment variables in the Railway dashboard
+4. Every push to `main` triggers an automatic redeploy
+
+```env
+PORT=8080
+NODE_ENV=production
+```
+
 ### Self-Hosted
 
 ```bash
 docker compose up -d
-```
-
----
-
-## Publishing a Release
-
-### npm
-
-```bash
-# Login to npm
-npm login
-
-# Publish publicly
-npm publish --access public
-```
-
-Once published, users can install globally:
-
-```bash
-npm install -g @c0smic/conflict-globe
-conflict-globe start
-```
-
-### Bump the version
-
-```bash
-npm version patch   # 1.0.0 → 1.0.1
-npm version minor   # 1.0.0 → 1.1.0
-npm version major   # 1.0.0 → 2.0.0
 ```
 
 ---
