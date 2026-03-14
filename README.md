@@ -14,7 +14,7 @@
 
 <br/>
 
-![Conflict Globe](https://raw.githubusercontent.com/r13xr13/conflict-globe.gl/master/screenshot.png)
+[![Conflict Globe](https://raw.githubusercontent.com/r13xr13/conflict-globe.gl/master/screenshot.png)
 
 </div>
 
