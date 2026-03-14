@@ -52,23 +52,33 @@ The bot uses Discord slash commands. Type `/` in chat to see available commands:
 ### 5. Automated Pushing
 The bot automatically pushes updates to multiple Discord channels:
 
-**Hourly Updates**:
-- `#live-updates` - Basic status, news, and events
-- `#general` - Basic status, news, and events
-- `#dev` - Detailed technical info (requires bot re-invite with dev channel access)
+**#live-updates** - Real-time conflict events feed
+- Live conflict events as they happen
+- Focus on immediate, actionable intelligence
+- Timestamps and location data
 
-**Critical Threat Alerts**:
-- `#updates` - Basic threat alerts
-- `#general` - Basic threat alerts
-- `#dev` - Detailed threat analysis with indicators and recommendations (requires bot re-invite)
+**#general** - Casual community updates  
+- Top 3 news headlines from the hour
+- Friendly, readable format
+- Great for general awareness
+
+**#dev** - Full technical details
+- System status (process, uptime, memory)
+- Raw JSON news data
+- Raw JSON event data  
+- Threat analysis summary
+
+**#updates** - Critical threat alerts only
+- Immediate threat notifications
+- Quick summary format
 
 **Frequency**: Every hour (at minute 0 of each hour)
 
 **Channel Configuration**:
-- `#live-updates`: Main update channel with all information
-- `#updates`: Critical threat alerts channel
-- `#general`: General announcements and updates
-- `#dev`: Detailed technical information (requires additional permissions)
+- `#live-updates`: Real-time conflict events feed for monitoring
+- `#updates`: Critical threat alerts only
+- `#general`: Casual community news updates
+- `#dev`: Full technical details and raw data
 
 ### 6. Threat Analysis System
 The bot includes an AI-powered threat analysis system using Ollama:

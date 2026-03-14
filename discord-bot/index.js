@@ -42,15 +42,13 @@ async function alertCallback(threat) {
 
         // Basic alert - ONLY to #updates channel
         const basicEmbed = new EmbedBuilder()
-            .setTitle('🚨 CRITICAL THREAT DETECTED')
-            .setDescription(threat.type)
+            .setTitle('🚨 Threat Alert')
+            .setDescription(`${threat.type}\n**${level}** threat detected in ${threat.source}`)
             .setColor(level === 'Critical' ? 0xFF0000 : 0xFFA500)
             .addFields(
                 { name: 'Location', value: location, inline: true },
-                { name: 'Date', value: date, inline: true },
-                { name: 'Threat Level', value: level, inline: true },
-                { name: 'Pattern Type', value: pattern, inline: true },
-                { name: 'Source', value: threat.source, inline: true }
+                { name: 'Time', value: date, inline: true },
+                { name: 'Pattern', value: pattern, inline: true }
             )
             .setTimestamp();
 
@@ -161,155 +159,150 @@ async function sendScheduledUpdate() {
 
         const updateTime = new Date().toLocaleString();
         const hour = new Date().getHours();
+        const minute = new Date().getMinutes();
 
-        // 2. Status Embed - Different versions for different channels
+        // 2. Tailor content for each channel
         
-        // #live-updates: Full status
-        const liveStatusEmbed = new EmbedBuilder()
-            .setTitle('🌍 Conflict Globe: Hourly Update')
-            .setDescription(`Update #${hour}: Full status, news, and events`)
-            .setColor(0x0099FF)
-            .addFields(
-                { name: 'System Status', value: '✅ Online', inline: true },
-                { name: 'Data Sources', value: '✅ Active', inline: true },
-                { name: 'Last Update', value: updateTime, inline: true }
-            )
-            .setTimestamp();
-        await liveChannel.send({ embeds: [liveStatusEmbed] });
-
-        // #general: Minimal status only
-        const generalStatusEmbed = new EmbedBuilder()
-            .setTitle('🌍 Conflict Globe Status')
-            .setDescription(`System online - Update #${hour}`)
-            .setColor(0x0099FF)
-            .addFields(
-                { name: 'Status', value: '✅ Online', inline: true },
-                { name: 'Time', value: updateTime, inline: true }
-            )
-            .setTimestamp();
-        if (generalChannel) await generalChannel.send({ embeds: [generalStatusEmbed] });
-        
-        // #dev: Detailed technical status
-        if (devChannel) {
-            const devStatusEmbed = new EmbedBuilder()
-                .setTitle('🌍 Conflict Globe: Hourly Status (Detailed)')
-                .setDescription(`Technical update #${hour}`)
-                .setColor(0x0099FF)
-                .addFields(
-                    { name: 'System Status', value: '✅ Online', inline: true },
-                    { name: 'Data Sources', value: '✅ Active', inline: true },
-                    { name: 'API Endpoint', value: CONFLICT_GLOBE_API, inline: false },
-                    { name: 'Last Update', value: updateTime, inline: true },
-                    { name: 'News Sources', value: 'BBC, BleepingComputer', inline: true },
-                    { name: 'Analysis Model', value: 'llama3.2:latest', inline: true }
-                )
+        // #live-updates: Real-time events feed for monitoring
+        // Focus on immediate, actionable intelligence
+        if (conflictEvents && conflictEvents.length > 0) {
+            const liveEventsEmbed = new EmbedBuilder()
+                .setTitle('🔴 LIVE: Conflict Events Feed')
+                .setDescription(`Real-time events • Update ${hour}:${minute.toString().padStart(2, '0')}`)
+                .setColor(0xFF0000)
                 .setTimestamp();
+
+            conflictEvents.forEach((event, index) => {
+                const date = new Date(event.date).toLocaleTimeString();
+                const location = `${event.lat.toFixed(2)}, ${event.lon.toFixed(2)}`;
+                liveEventsEmbed.addFields({
+                    name: `${index + 1}. ${event.type}`,
+                    value: `📍 ${location} | 🕐 ${date}\n${event.description?.substring(0, 120) || 'No description'}\n[Source: ${event.source}]`,
+                    inline: false
+                });
+            });
+
+            await liveChannel.send({ embeds: [liveEventsEmbed] });
+        }
+
+        // #general: Casual, informative update
+        // Focus on interesting headlines and general awareness
+        if (newsItems && newsItems.length > 0) {
+            // Get the top 3 most interesting news items
+            const topNews = newsItems.slice(0, 3);
+            
+            const generalNewsEmbed = new EmbedBuilder()
+                .setTitle('🌍 Global News Update')
+                .setDescription('What\'s happening around the world today')
+                .setColor(0xFFA500)
+                .setTimestamp();
+
+            topNews.forEach((item, index) => {
+                const sourceEmoji = item.source.includes('BBC') ? '📺' : '💻';
+                generalNewsEmbed.addFields({
+                    name: `${sourceEmoji} ${item.title}`,
+                    value: `From ${item.source} • ${new Date(item.pubDate).toLocaleTimeString()}`,
+                    inline: false
+                });
+            });
+
+            if (generalChannel) await generalChannel.send({ embeds: [generalNewsEmbed] });
+        }
+
+        // #dev: Full technical details, logs, and raw data
+        if (devChannel) {
             try {
+                // Technical Status
+                const devStatusEmbed = new EmbedBuilder()
+                    .setTitle('⚙️ System Status (Technical)')
+                    .setDescription(`Hourly technical report #${hour}`)
+                    .setColor(0x0099FF)
+                    .addFields(
+                        { name: 'Process', value: '✅ Running', inline: true },
+                        { name: 'Uptime', value: process.uptime().toFixed(0) + 's', inline: true },
+                        { name: 'Memory', value: `${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1)}MB`, inline: true },
+                        { name: 'API', value: CONFLICT_GLOBE_API, inline: false },
+                        { name: 'News Sources', value: 'BBC, BleepingComputer', inline: true },
+                        { name: 'Analysis Model', value: 'llama3.2:latest', inline: true },
+                        { name: 'Last Update', value: updateTime, inline: true }
+                    )
+                    .setTimestamp();
                 await devChannel.send({ embeds: [devStatusEmbed] });
+
+                // Raw News Data
+                if (newsItems && newsItems.length > 0) {
+                    const devNewsEmbed = new EmbedBuilder()
+                        .setTitle('📰 Raw News Data (JSON)')
+                        .setDescription('Unformatted news items for debugging')
+                        .setColor(0xFFA500)
+                        .setTimestamp();
+                    
+                    newsItems.forEach((item, index) => {
+                        devNewsEmbed.addFields({
+                            name: `Item ${index + 1}`,
+                            value: `\`\`\`json\n${JSON.stringify({
+                                title: item.title,
+                                source: item.source,
+                                link: item.link,
+                                pubDate: item.pubDate
+                            }, null, 2)}\n\`\`\``,
+                            inline: false
+                        });
+                    });
+                    await devChannel.send({ embeds: [devNewsEmbed] });
+                }
+
+                // Raw Event Data
+                if (conflictEvents && conflictEvents.length > 0) {
+                    const devEventsEmbed = new EmbedBuilder()
+                        .setTitle('📋 Raw Event Data (JSON)')
+                        .setDescription('Unformatted event data for debugging')
+                        .setColor(0xFF0000)
+                        .setTimestamp();
+                    
+                    conflictEvents.forEach((event, index) => {
+                        devEventsEmbed.addFields({
+                            name: `Event ${index + 1}`,
+                            value: `\`\`\`json\n${JSON.stringify({
+                                type: event.type,
+                                source: event.source,
+                                category: event.category,
+                                lat: event.lat,
+                                lon: event.lon,
+                                date: event.date,
+                                description: event.description?.substring(0, 100)
+                            }, null, 2)}\n\`\`\``,
+                            inline: false
+                        });
+                    });
+                    await devChannel.send({ embeds: [devEventsEmbed] });
+                }
+
+                // Threat Analysis Summary
+                const threats = threatAnalyzer.getCriticalThreats(3);
+                if (threats.length > 0) {
+                    const threatSummaryEmbed = new EmbedBuilder()
+                        .setTitle('🚨 Recent Threat Analysis')
+                        .setDescription('Critical threats detected')
+                        .setColor(0xFF0000)
+                        .setTimestamp();
+                    
+                    threats.forEach((threat, index) => {
+                        threatSummaryEmbed.addFields({
+                            name: `${index + 1}. ${threat.type}`,
+                            value: `Level: ${threat.analysis?.threatLevel} | Pattern: ${threat.analysis?.patternType}`,
+                            inline: false
+                        });
+                    });
+                    await devChannel.send({ embeds: [threatSummaryEmbed] });
+                }
+
             } catch (err) {
                 console.log(`Failed to send to #dev: ${err.message}`);
             }
         }
 
-        // 3. News Embed - Only to #live-updates and #dev
-        if (newsItems && newsItems.length > 0) {
-            const newsEmbed = new EmbedBuilder()
-                .setTitle('🌍 Conflict Globe: Global News')
-                .setColor(0xFFA500)
-                .setTimestamp();
-
-            newsItems.forEach((item, index) => {
-                const description = item.contentSnippet ? item.contentSnippet.substring(0, 100) + '...' : 'No description';
-                const source = item.source || 'Unknown';
-                newsEmbed.addFields({
-                    name: `${index + 1}. ${item.title}`,
-                    value: `${description}\n[Source: ${source}] | [Read more](${item.link})`,
-                    inline: false
-                });
-            });
-
-            await liveChannel.send({ embeds: [newsEmbed] });
-            
-            // Dev gets raw news data
-            if (devChannel) {
-                const devNewsEmbed = new EmbedBuilder()
-                    .setTitle('📰 Raw News Data')
-                    .setDescription('Unformatted news items for debugging')
-                    .setColor(0xFFA500)
-                    .setTimestamp();
-                
-                newsItems.forEach((item, index) => {
-                    devNewsEmbed.addFields({
-                        name: `Item ${index + 1}`,
-                        value: `\`\`\`json\n${JSON.stringify({
-                            title: item.title,
-                            source: item.source,
-                            link: item.link,
-                            pubDate: item.pubDate
-                        }, null, 2)}\n\`\`\``,
-                        inline: false
-                    });
-                });
-                
-                try {
-                    await devChannel.send({ embeds: [devNewsEmbed] });
-                } catch (err) {
-                    console.log(`Failed to send news to #dev: ${err.message}`);
-                }
-            }
-        }
-
-        // 4. Events Embed - Only to #live-updates and #dev
-        if (conflictEvents && conflictEvents.length > 0) {
-            const eventsEmbed = new EmbedBuilder()
-                .setTitle('🌍 Conflict Globe: Latest Events')
-                .setColor(0xFF0000)
-                .setTimestamp();
-
-            conflictEvents.forEach((event, index) => {
-                const date = new Date(event.date).toLocaleString();
-                const location = `${event.lat.toFixed(2)}, ${event.lon.toFixed(2)}`;
-                eventsEmbed.addFields({
-                    name: `${index + 1}. ${event.type}`,
-                    value: `📍 ${location} | 📅 ${date}\n${event.description?.substring(0, 150) || 'No description'}\n[Source: ${event.source}]`,
-                    inline: false
-                });
-            });
-
-            await liveChannel.send({ embeds: [eventsEmbed] });
-            
-            // Dev gets raw event data
-            if (devChannel) {
-                const devEventsEmbed = new EmbedBuilder()
-                    .setTitle('📋 Raw Event Data')
-                    .setDescription('Unformatted event data for debugging')
-                    .setColor(0xFF0000)
-                    .setTimestamp();
-                
-                conflictEvents.forEach((event, index) => {
-                    devEventsEmbed.addFields({
-                        name: `Event ${index + 1}`,
-                        value: `\`\`\`json\n${JSON.stringify({
-                            type: event.type,
-                            source: event.source,
-                            category: event.category,
-                            lat: event.lat,
-                            lon: event.lon,
-                            date: event.date
-                        }, null, 2)}\n\`\`\``,
-                        inline: false
-                    });
-                });
-                
-                try {
-                    await devChannel.send({ embeds: [devEventsEmbed] });
-                } catch (err) {
-                    console.log(`Failed to send events to #dev: ${err.message}`);
-                }
-            }
-        }
-
-        console.log(`Scheduled update #${hour} sent successfully`);
+        console.log(`Scheduled update #${hour}:${minute} sent successfully`);
     } catch (error) {
         console.error('Error sending scheduled update:', error.message);
     }
