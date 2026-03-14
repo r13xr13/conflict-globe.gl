@@ -2,8 +2,19 @@
 
 ## Setup Instructions
 
-### 1. Bot Token
-The bot token has been configured in `index.js`. Make sure to keep it secret!
+### 1. Environment Configuration
+Create a `.env` file in the `discord-bot` directory with your bot token and channel IDs:
+
+```env
+DISCORD_BOT_TOKEN=your_bot_token_here
+CONFLICT_GLOBE_API=http://localhost:8080/api/conflicts
+LIVE_UPDATES_CHANNEL_ID=your_live_updates_channel_id
+THREAT_ALERTS_CHANNEL_ID=your_threat_alerts_channel_id
+GENERAL_CHANNEL_ID=your_general_channel_id
+DEV_CHANNEL_ID=your_dev_channel_id
+```
+
+See `.env.example` for reference.
 
 ### 2. Adding the Bot to Your Server
 Use this invite link to add the bot to your Discord server:

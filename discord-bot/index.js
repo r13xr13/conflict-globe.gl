@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { Client, GatewayIntentBits, EmbedBuilder, Events } = require('discord.js');
 const Parser = require('rss-parser');
 const axios = require('axios');
@@ -13,14 +14,14 @@ const client = new Client({
 });
 
 const TOKEN = process.env.DISCORD_BOT_TOKEN || 'YOUR_BOT_TOKEN_HERE';
-const CONFLICT_GLOBE_API = 'http://localhost:8080/api/conflicts';
+const CONFLICT_GLOBE_API = process.env.CONFLICT_GLOBE_API || 'http://localhost:8080/api/conflicts';
 
-// Channel configurations
+// Channel configurations (from environment variables or defaults)
 const CHANNELS = {
-    liveUpdates: '1482135927043391650',  // #live-updates - Full updates (status, news, events)
-    threatAlerts: '1480287712366952509', // #updates - Critical threat alerts only
-    general: '1480010187107733545',      // #general - Minimal status only
-    dev: '1480238458177064960'           // #dev - Detailed technical info
+    liveUpdates: process.env.LIVE_UPDATES_CHANNEL_ID || '1482135927043391650',
+    threatAlerts: process.env.THREAT_ALERTS_CHANNEL_ID || '1480287712366952509',
+    general: process.env.GENERAL_CHANNEL_ID || '1480010187107733545',
+    dev: process.env.DEV_CHANNEL_ID || '1480238458177064960'
 };
 
 // Initialize threat analyzer
