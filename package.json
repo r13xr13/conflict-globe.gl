@@ -1,5 +1,5 @@
 {
-  "name": "conflict-globe",
+  "name": "@c0smic/conflict-globe",
   "version": "1.0.0",
   "description": "Real-time 3D OSINT visualization platform with AI-powered Discord bot",
   "main": "server/dist/index.js",
