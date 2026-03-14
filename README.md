@@ -1,20 +1,22 @@
 <div align="center">
 
-# Conflict Globe
+# Conflict Globe 🌍
 
-**A real-time 3D OSINT visualization platform with AI-powered Discord bot**
+**A real-time 3D OSINT visualization platform for global conflict and geopolitical events**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/r13xr13/conflict-globe.gl/releases)
+[![TypeScript](https://img.shields.io/badge/TypeScript-98%25-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/)
-[![npm](https://img.shields.io/badge/npm-ready-CB3837?logo=npm&logoColor=white)](https://npmjs.com/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[Demo](#demo) · [Features](#features) · [Installation](#installation) · [Discord Bot](#discord-bot) · [Configuration](#configuration) · [Deployment](#deployment) · [Package](#package)
+[Demo](#demo) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Contributing](#contributing)
 
 <br/>
 
+![Conflict Globe](https://raw.githubusercontent.com/r13xr13/conflict-globe.gl/main/Screenshot_07-Mar_00-33-44_13941.png)
 
+![Conflict Globe](https://raw.githubusercontent.com/r13xr13/conflict-globe.gl/main/Screenshot_11-Mar_21-07-37_14287.png)
 
 </div>
 
@@ -22,189 +24,117 @@
 
 ## Overview
 
-Conflict Globe is an open-source intelligence (OSINT) platform that aggregates and visualizes global conflict, maritime, air, cyber, and geopolitical events in real-time on an interactive 3D globe. It includes an AI-powered Discord bot that analyzes events and posts tailored updates to your server.
+Conflict Globe is an open-source intelligence (OSINT) platform that aggregates and visualizes global conflict, maritime, air, cyber, and geopolitical events in real time on an interactive 3D globe. Built for analysts, researchers, and journalists who need a high-signal, low-latency view of world events.
 
-> **Demo**: [Watch the platform demo](https://www.youtube.com/watch?v=EvRL27Z5uh4)
-> 
-> **Discord**: [Join Our Discord](https://discord.gg/zRyBE6S7YG)
+> **Demo**: [▶ Watch on YouTube](https://youtu.be/e52LPDBjIAQ)
+>
+> **Discord**: [Join the community](https://discord.gg/zRyBE6S7YG)
 
 ---
 
 ## Features
 
-### 3D Globe Visualization
-- **Real-time OSINT aggregation** from 70+ data sources
-- **WebSocket push updates** — no polling required on the client
+### Real-Time Data Pipeline
+
+- Live OSINT feed aggregation from multiple independent sources
+- WebSocket (Socket.io) push updates — no client polling required
+- Configurable auto-refresh intervals per source
 
 ### Visualization Layers
+
 | Layer | Description |
 |---|---|
-| Points | Individual event markers with per-category color coding |
-| HexBins | Hexagonal spatial clustering for density analysis |
-| Heatmap | Continuous density surface from event distribution |
-| Rings | Animated pulse rings at active event locations |
-| Arcs | Directional connections between correlated events |
-| Paths | Movement and trajectory tracking |
+| **Points** | Individual event markers with per-category color coding |
+| **HexBins** | Hexagonal spatial clustering for density analysis |
+| **Heatmap** | Continuous density surface from event distribution |
+| **Rings** | Animated pulse rings at active event locations |
+| **Arcs** | Directional connections between correlated events |
+| **Paths** | Movement and trajectory tracking |
+| **Polygons** | Regional boundary and aggregation overlays |
+
+### Globe Controls
+
+- Dark / Light themes
+- Atmospheric glow, cloud layer, and bump-mapped terrain
+- Lat/long graticule grid overlay
+- Auto-rotation with drag-to-pause
+- Client-side point clustering for smooth performance at scale
+
+### Interaction & Filtering
+
+- Click any marker for a full event detail panel
+- Hover tooltips for at-a-glance previews
+- Timeline slider for temporal filtering
+- Category filter toggles
+- Full-text search across all loaded events
+- Export to **JSON**, **GeoJSON**, or **CSV**
 
 ### Event Categories
-`Conflict` · `Maritime` · `Air` · `Cyber` · `Land` · `Space` · `Radio` · `Weather` · `Earthquakes` · `Social Media` · `Cameras`
 
-### Discord Bot
-- **AI-powered analysis** using Ollama with model selection per category
-- **Multi-channel distribution**:
-  - `#live-updates` — Real-time conflict events (every 15 min)
-  - `#general` — AI-written news articles (every hour)
-  - `#dev` — Server stats (every hour)
-  - `#threat-alerts` — Critical threat alerts (every 30 min)
-- **Slash commands** for on-demand reports
-
-### AI Agent
-- Fetches all 10 categories from Conflict Globe API
-- Selects best Ollama model per category:
-  - `llama3.2:latest` — conflict, cyber, social, cameras
-  - `qwen2.5:7b` — maritime, space
-  - `llama3.1:8b-instruct` — air
-  - `mistral:latest` — weather, earthquakes
-  - `phi3:latest` — radio
-- Analyzes: threat level, category, indicators, sentiment, escalation potential
+`Conflict` · `Maritime` · `Air` · `Cyber` · `Land` · `Space` · `Radio` · `Weather` · `Earthquakes` · `Social Media`
 
 ---
 
-## Installation
+## Quick Start
 
-### Option 1: Docker (Recommended)
+### Docker (Recommended)
+
+Requires [Docker](https://docs.docker.com/get-docker/) and Docker Compose.
 
 ```bash
-# Clone the repository
 git clone https://github.com/r13xr13/conflict-globe.gl.git
 cd conflict-globe.gl
 
-# Start the server
 docker compose up -d
 
-# Access the app
 open http://localhost:8080
 ```
 
-### Option 2: Local Development (npm)
+### Local Development
+
+Requires Node.js ≥ 18.
 
 ```bash
-# Clone the repository
 git clone https://github.com/r13xr13/conflict-globe.gl.git
 cd conflict-globe.gl
 
-# Install server dependencies
-cd server && npm install
+# Install dependencies
+cd client-3d && npm install
+cd ../server && npm install
 
-# Install client dependencies
-cd ../client-3d && npm install
-
-# Start the backend (Terminal 1)
+# Terminal 1 — Backend
 cd server && npm run dev
 
-# Start the frontend (Terminal 2)
+# Terminal 2 — Frontend
 cd client-3d && npm run dev
 ```
-
-### Option 3: Homebrew
-
-```bash
-# Tap the package (if published)
-brew tap conflict-globe/tap
-brew install conflict-globe
-
-# Run the service
-conflict-globe start
-```
-
----
-
-## Discord Bot Setup
-
-### Prerequisites
-- [Ollama](https://ollama.ai/) running locally or remotely
-- A Discord bot token ([create here](https://discord.com/developers/applications))
-
-### Configuration
-
-1. Copy the example environment file:
-```bash
-cd discord-bot
-cp .env.example .env
-```
-
-2. Edit `.env` with your settings:
-```env
-# Discord Bot Token
-DISCORD_BOT_TOKEN=your_bot_token_here
-
-# Conflict Globe API URL
-CONFLICT_GLOBE_API=http://localhost:8080/api/conflicts
-
-# Ollama API URL
-OLLAMA_BASE_URL=http://localhost:11434
-
-# Channel IDs
-LIVE_UPDATES_CHANNEL_ID=your_channel_id
-THREAT_ALERTS_CHANNEL_ID=your_channel_id
-GENERAL_CHANNEL_ID=your_channel_id
-DEV_CHANNEL_ID=your_channel_id
-```
-
-3. Install and run:
-```bash
-cd discord-bot
-npm install
-node index.js
-```
-
-### Slash Commands
-- `/status` — Check bot and system status
-- `/threats` — Get current critical threats
-- `/news` — Fetch latest news
-- `/events` — Get recent events
 
 ---
 
 ## Configuration
 
-### Environment Variables
-
-Create a `.env` file in the root directory:
+Create a `.env` file in the `server/` directory. All API keys are optional — many data feeds work without authentication.
 
 ```env
-# API Keys (optional - many sources work without keys)
-OPENSKY_CLIENT_ID=
-OPENSKY_CLIENT_SECRET=
-ACLED_KEY=
-ACLED_EMAIL=
-WINDY_KEY=
-AISSTREAM_KEY=
-NEWSAPI_KEY=
-GDELT_KEY=
-
-# Discord Bot
-DISCORD_BOT_TOKEN=
+# API Keys (optional)
+NEWS_API_KEY=your_key_here
+GDELT_KEY=your_key_here
 
 # Server
 PORT=8080
-NODE_ENV=production
+NODE_ENV=development
 ```
 
 ### Data Sources
 
-The platform aggregates from 70+ OSINT providers:
-
-| Category | Sources |
+| Source | Domain |
 |---|---|
-| Conflict | BBC, ACLED, IDF, NATO, Reuters, AP |
-| Maritime | AISStream, MarineTraffic |
-| Air | OpenSky Network, ADS-B Exchange |
-| Cyber | BleepingComputer, HackRead |
-| Space | Space-Track, CelesTrak |
-| Weather | NOAA, Windy.com |
-| Earthquakes | USGS, EMSC |
-| Social | Reddit, Telegram OSINT |
+| [GDELT Project](https://www.gdeltproject.org/) | Global events & media |
+| [UCDP Armed Conflict](https://ucdp.uu.se/) | Conflict datasets |
+| MarineTraffic | Maritime vessel tracking |
+| ADS-B Exchange | Live aircraft positions |
+| Satellite tracking feeds | Space domain awareness |
+| RSS news aggregation | Open-source media feeds |
 
 ---
 
@@ -212,74 +142,22 @@ The platform aggregates from 70+ OSINT providers:
 
 ```
 conflict-globe.gl/
-├── client-3d/              # React + Vite frontend
-│   └── src/App.tsx         # Globe component
-├── server/                  # Express + TypeScript backend
-│   └── src/index.ts        # API + Socket.io
-├── discord-bot/            # Discord bot with AI agent
-│   ├── index.js           # Bot commands & scheduler
-│   └── ai-agent.js        # Ollama AI integration
+├── client-3d/          # React + Vite frontend (TypeScript)
+│   ├── src/
+│   │   └── App.tsx     # Root globe component & state
+│   └── package.json
+├── server/             # Express + TypeScript backend
+│   ├── src/
+│   │   ├── index.ts    # Entry point & Socket.io setup
+│   │   ├── routes/     # REST API endpoints
+│   │   └── services/   # Per-source OSINT data fetchers
+│   └── package.json
+├── globe.gl/           # Vendored custom globe.gl build
 ├── Dockerfile
-├── docker-compose.yml
-└── railway.json           # Railway deployment config
+└── docker-compose.yml
 ```
 
-**Data Flow:** OSINT Sources → Server API → 3D Globe + Discord Bot → Users
-
----
-
-## Deployment
-
-### Railway (Cloud)
-
-1. Connect your GitHub repo to Railway
-2. Set environment variables in Railway dashboard
-3. Deploy automatically on push to main
-
-```env
-PORT=8080
-NODE_ENV=production
-# Add API keys as needed
-```
-
-### Docker Swarm
-
-```bash
-docker stack deploy -c docker-compose.yml conflict-globe
-```
-
-### Kubernetes
-
-```bash
-kubectl apply -f k8s/
-```
-
----
-
-## Publishing the Package
-
-### To npm
-
-```bash
-# Update version in package.json
-npm version patch
-
-# Login to npm
-npm login
-
-# Publish
-npm publish
-```
-
-### To Homebrew
-
-```bash
-# Create a tap
-brew tap conflict-globe/tap
-
-# Formula location
-# https://github.com/conflict-globe/homebrew-tap
-```
+**Data flow:** OSINT sources → Express REST & Socket.io → React client → globe.gl WebGL renderer
 
 ---
 
@@ -287,20 +165,20 @@ brew tap conflict-globe/tap
 
 | Layer | Technologies |
 |---|---|
-| Frontend | React, Vite, react-globe.gl, Three.js, TypeScript |
-| Backend | Node.js, Express, TypeScript, Socket.io |
-| Bot | Discord.js, Ollama, node-cron |
-| Data | Axios, RSS parsers, REST OSINT APIs |
-| Infrastructure | Docker, Railway, npm |
+| **Frontend** | React, Vite, react-globe.gl, Three.js, TypeScript |
+| **Backend** | Node.js, Express, TypeScript, Socket.io |
+| **Data** | Axios, RSS parsers, REST OSINT APIs |
+| **Infrastructure** | Docker, Docker Compose |
 
 ---
 
 ## Performance
 
-- Client-side point clustering for large event volumes
-- Configurable max points (50-500)
-- Auto-refresh throttling to prevent rate limits
-- Memoized data processing
+- Client-side point clustering keeps render time stable at large event volumes
+- Configurable max point count (50–500) to match hardware capability
+- Auto-refresh throttling prevents API rate-limit exhaustion
+- Memoized data processing avoids redundant React renders
+- Code-split lazy loading reduces initial bundle size
 
 ---
 
@@ -308,30 +186,53 @@ brew tap conflict-globe/tap
 
 | Key | Action |
 |---|---|
-| R | Force data refresh |
-| F | Toggle sidebar |
-| H | Toggle dark/light theme |
+| `R` | Force data refresh |
+| `F` | Toggle sidebar |
+| `H` | Toggle dark / light theme |
+
+---
+
+## Deployment
+
+### Railway (Cloud — Recommended)
+
+1. Connect your GitHub repo to [Railway](https://railway.app)
+2. Railway auto-detects the Dockerfile — no extra config needed
+3. Add environment variables in the Railway dashboard
+4. Every push to `main` triggers an automatic redeploy
+
+```env
+PORT=8080
+NODE_ENV=production
+```
+
+### Self-Hosted
+
+```bash
+docker compose up -d
+```
 
 ---
 
 ## Contributing
 
+Contributions are welcome — please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
+
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/name`
+2. Create a feature branch: `git checkout -b feature/your-feature`
 3. Commit your changes
-4. Open a pull request
+4. Open a pull request against `main`
 
 ---
 
 ## License
 
-MIT License - see [LICENSE](LICENSE)
+Distributed under the [MIT License](LICENSE).
 
 ---
 
 ## Acknowledgements
 
-- [globe.gl](https://github.com/vasturiano/globe.gl) — WebGL globe rendering
-- [Ollama](https://ollama.ai/) — Local AI inference
-- [Discord.js](https://discord.js.org/) — Bot framework
-- All OSINT data providers
+- [globe.gl](https://github.com/vasturiano/globe.gl) — WebGL globe rendering by Vasco Asturiano
+- [three-globe](https://github.com/vasturiano/three-globe) — Three.js globe plugin
+- [GDELT Project](https://www.gdeltproject.org/) — Primary open-source event data provider
