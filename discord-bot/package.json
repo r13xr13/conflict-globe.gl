@@ -1,19 +1,28 @@
 {
-  "name": "discord-bot",
+  "name": "@conflict-globe/discord-bot",
   "version": "1.0.0",
-  "description": "",
+  "description": "AI-powered Discord bot for Conflict Globe OSINT platform",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "dev": "node index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "discord",
+    "bot",
+    "osint",
+    "conflict",
+    "ai",
+    "ollama"
+  ],
+  "author": "Conflict Globe Team",
+  "license": "MIT",
   "type": "commonjs",
   "dependencies": {
     "@discordjs/rest": "^2.6.0",
     "axios": "^1.13.6",
     "discord-api-types": "^0.38.42",
+    "discord.js": "^14.21.0",
     "dotenv": "^16.6.1",
     "node-cron": "^4.2.1",
     "rss-parser": "^3.13.0"

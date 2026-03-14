@@ -15,6 +15,7 @@ const client = new Client({
 
 const TOKEN = process.env.DISCORD_BOT_TOKEN || 'YOUR_BOT_TOKEN_HERE';
 const CONFLICT_GLOBE_API = process.env.CONFLICT_GLOBE_API || 'http://localhost:8080/api/conflicts';
+const OLLAMA_BASE = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
 
 // Channel configurations (from environment variables or defaults)
 const CHANNELS = {

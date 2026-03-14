@@ -3,7 +3,7 @@ const axios = require('axios');
 const fs = require('fs').promises;
 const path = require('path');
 
-const OLLAMA_BASE = 'http://localhost:11434/api';
+const OLLAMA_BASE = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
 const CONFLICT_GLOBE_API = process.env.CONFLICT_GLOBE_API || 'http://localhost:8080/api/conflicts';
 const STORAGE_DIR = path.join(__dirname, 'threat-data');
 

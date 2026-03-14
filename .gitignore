@@ -10,5 +10,8 @@ coverage/
 .idea/
 *.tgz
 discord-bot/node_modules/
-discord-bot/threat-data/
-discord-bot/.env
+discord-bot/*.log
+server/node_modules/
+globe.gl/node_modules/
+client/node_modules/
+client-3d/node_modules/
