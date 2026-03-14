@@ -1,6 +1,6 @@
 <div align="center">
 
-# Conflict Globe 🌍
+# Conflict Globe 
 
 **A real-time 3D OSINT visualization platform for global conflict and geopolitical events**
 
