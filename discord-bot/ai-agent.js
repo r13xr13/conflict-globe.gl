@@ -70,6 +70,8 @@ class ConflictGlobeAI {
 
     async init() {
         console.log('Initializing Conflict Globe AI Agent...');
+        console.log('OLLAMA_BASE:', OLLAMA_BASE);
+        console.log('OLLAMA_API:', OLLAMA_API);
         await this.fetchAvailableModels();
         console.log('Available models: ' + this.availableModels.join(', '));
         await this.loadData();

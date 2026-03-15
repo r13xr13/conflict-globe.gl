@@ -64,6 +64,9 @@ interface LayerState {
   showRings: boolean;
   showPolygons: boolean;
   showPaths: boolean;
+  showCityBuildings: boolean;
+  showCityDensity: boolean;
+  showUrbanExtents: boolean;
 }
 
 type GlobeTheme = "dark" | "light" | "satellite" | "terrain";

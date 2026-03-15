@@ -18,6 +18,8 @@ import { fetchPublicCameras, fetchEarthCamFeeds, fetchWebCamTaxi, fetchWindyCame
 import { fetchGlobalNews } from "../services/news";
 import { fetchGdeltevents } from "../services/gdelt";
 import { fetchFlightData, fetchMilitaryFlights, fetchAirspaceAlerts, fetchDroneZones } from "../services/flights";
+import { fetchCityBuildings, fetchCityDensityPoints, fetchUrbanExtents } from "../services/city";
+import { fetchWikidataConflicts, fetchWikidataLocations } from "../services/wikidata";
 
 const router = Router();
 
@@ -51,10 +53,20 @@ async function getConflictEvents(): Promise<EventData[]> {
   return cached("conflicts", TTL.medium, async () => {
     const results = await Promise.allSettled([
       fetchACLEDEvents(),
-      fetchGDELTConflicts(), fetchUCDPConflicts(), fetchReliefWebConflicts(),
-      fetchRSSNews(), fetchDefenseNews(), fetchUkraineNews(), fetchMiddleEastNews(),
-      fetchRedditGeoPosts(), fetchHackerNewsIntel(), fetchGlobalIncidents(),
-      fetchRedditLiveThreads(), fetchTelegramChannels(), fetchAllScrapedData(),
+      fetchGDELTConflicts(),
+      fetchUCDPConflicts(),
+      fetchReliefWebConflicts(),
+      fetchRSSNews(),
+      fetchDefenseNews(),
+      fetchUkraineNews(),
+      fetchMiddleEastNews(),
+      fetchRedditGeoPosts(),
+      fetchHackerNewsIntel(),
+      fetchGlobalIncidents(),
+      fetchRedditLiveThreads(),
+      fetchTelegramChannels(),
+      fetchAllScrapedData(),
+      fetchWikidataConflicts(),
     ]);
     return results.flatMap(r => r.status === "fulfilled" ? r.value : []);
   });
@@ -93,12 +105,26 @@ async function getCyberEvents(): Promise<EventData[]> {
 
 async function getLandEvents(): Promise<EventData[]> {
   return cached("land", TTL.medium, async () => {
-    const results = await Promise.allSettled([
-      fetchInfrastructure(), fetchPowerGrid(), fetchCriticalInfrastructure(),
-      fetchEarthquakes(), fetchWeatherAlerts(), fetchVolcanoAlerts(), fetchNuclearFacilities(),
-      fetchUSGSearthquakes(), fetchEMSCearthquakes(), fetchNOAAweather(),
+    const [infrastructureResults, cityResults] = await Promise.allSettled([
+      Promise.allSettled([
+        fetchInfrastructure(), fetchPowerGrid(), fetchCriticalInfrastructure(),
+        fetchEarthquakes(), fetchWeatherAlerts(), fetchVolcanoAlerts(), fetchNuclearFacilities(),
+        fetchUSGSearthquakes(), fetchEMSCearthquakes(), fetchNOAAweather(),
+      ]),
+      Promise.allSettled([
+        fetchCityBuildings(), fetchCityDensityPoints(), fetchUrbanExtents(),
+      ])
     ]);
-    return results.flatMap(r => r.status === "fulfilled" ? r.value : []);
+    
+    const infrastructure = infrastructureResults.status === "fulfilled" 
+      ? infrastructureResults.value.flatMap(r => r.status === "fulfilled" ? r.value : []) 
+      : [];
+    
+    const city = cityResults.status === "fulfilled" 
+      ? cityResults.value.flatMap(r => r.status === "fulfilled" ? r.value : []) 
+      : [];
+    
+    return [...infrastructure, ...city];
   });
 }
 

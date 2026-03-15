@@ -3,8 +3,8 @@
     "bbc-world-news-SGFtYXMgdXJn",
     {
       "id": "bbc-world-news-SGFtYXMgdXJn",
-      "lat": 31.167505905428477,
-      "lon": 34.97057108946224,
+      "lat": 30.863428200680907,
+      "lon": 34.71114933550277,
       "date": "2026-03-14T13:34:17.000Z",
       "type": "BBC World News: Hamas urges key ally Iran to halt attacks on Gulf ",
       "description": "The Palestinian group also affirms Tehran's right to defend itself from \"aggression\" by the US and Israel.",
@@ -14,32 +14,32 @@
         "threatLevel": "Critical",
         "threatCategory": "Geopolitical",
         "keyIndicators": [
-          "Hamas's statement indicates a significant escalation in tensions between Iran and the US/Israel.",
-          "The mention of 'aggression' by the US and Israel suggests a heightened sense of animosity.",
-          "The fact that Hamas is urging Iran to defend itself implies a potential for military conflict."
+          "Increased tensions between Iran and Gulf states",
+          "Hamas's assertion of Iran's right to defend itself",
+          "Potential for escalated conflict in the region"
         ],
         "affectedRegions": [
           "Middle East",
-          "Gulf Region"
+          "Gulf region"
         ],
         "sentiment": "Neutral",
         "escalationPotential": "High",
-        "summary": "Hamas has urged Iran to halt attacks on Gulf states, while affirming Tehran's right to defend itself against perceived US/Israeli aggression. This development indicates a significant escalation in tensions between Iran and the US/Israel, with potential implications for regional stability.",
+        "summary": "Hamas's warning to Iran to halt attacks on Gulf states, amidst escalating tensions between Iran and the US/Israel, potentially leading to increased conflict in the region.",
         "recommendedActions": [
-          "Monitor the situation closely and anticipate potential escalations.",
-          "Engage in diplomatic efforts to reduce tensions and promote de-escalation."
+          "Monitor developments in the Gulf region closely",
+          "Maintain open lines of communication with key stakeholders to mitigate the risk of escalation"
         ]
       },
       "modelUsed": "llama3.2:latest",
-      "analyzedAt": "2026-03-14T22:33:54.133Z"
+      "analyzedAt": "2026-03-14T23:37:11.677Z"
     }
   ],
   [
     "bbc-world-news-UnVzc2lhIGV4",
     {
       "id": "bbc-world-news-UnVzc2lhIGV4",
-      "lat": 55.73930252314329,
-      "lon": 37.371518929996576,
+      "lat": 55.83123615925676,
+      "lon": 37.75364403685128,
       "date": "2026-03-14T21:50:22.000Z",
       "type": "BBC World News: Russia exploiting Iran war, Zelensky says after fr",
       "description": "Volodymyr Zelensky cast concern over the supply of air-defence missiles after a heavy overnight attack kills at least five.",
@@ -47,34 +47,35 @@
       "category": "conflict",
       "analysis": {
         "threatLevel": "Critical",
-        "threatCategory": "Military",
+        "threatCategory": "Geopolitical",
         "keyIndicators": [
-          "Russia's supply chain exploitation in the Middle East",
-          "Increased tensions between Russia and Ukraine",
-          "Iran's vulnerability to external threats"
+          "Increased tensions between Ukraine and Russia",
+          "Potential for Russia to exploit the Iran-Russia conflict",
+          "Heavy overnight attack on Ukraine"
         ],
         "affectedRegions": [
-          "Middle East",
-          "Ukraine"
+          "Ukraine",
+          "Iran",
+          "Russia"
         ],
         "sentiment": "Negative",
         "escalationPotential": "High",
-        "summary": "A heavy overnight attack in Ukraine has raised concerns about Russia's exploitation of the conflict, potentially escalating the situation. The attack, which killed at least five people, highlights the ongoing instability in the region. This development may lead to increased tensions between Russia and Ukraine, with potential implications for regional stability.",
+        "summary": "Ukrainian President Zelensky expresses concern about Russia exploiting the Iran-Russia conflict, following a heavy overnight attack on Ukraine.",
         "recommendedActions": [
-          "Monitor Russian military movements in the Middle East and Ukraine",
-          "Analyze potential implications for regional stability and global energy markets"
+          "Enhance diplomatic efforts to prevent Russia from exploiting the Iran-Russia conflict",
+          "Increase military preparedness and cooperation with NATO allies"
         ]
       },
       "modelUsed": "llama3.2:latest",
-      "analyzedAt": "2026-03-14T23:05:25.186Z"
+      "analyzedAt": "2026-03-14T23:38:47.103Z"
     }
   ],
   [
     "bbc-world-news-Q3ViYW4gcHJv",
     {
       "id": "bbc-world-news-Q3ViYW4gcHJv",
-      "lat": 33.424983458888086,
-      "lon": 44.36321744594516,
+      "lat": 33.06906991413915,
+      "lon": 44.53454064417128,
       "date": "2026-03-14T22:07:50.000Z",
       "type": "BBC World News: Cuban protesters ransack Communist office as energ",
       "description": "Discontent is mounting over rolling blackouts and shortages of food, fuel and medicine, exacerbated by a US blockade.",
@@ -84,32 +85,31 @@
         "threatLevel": "Critical",
         "threatCategory": "Geopolitical",
         "keyIndicators": [
-          "Increasing discontent among Cuban citizens due to rolling blackouts and shortages",
-          "Exacerbation of tensions by US blockade",
-          "Growing protests and unrest"
+          "Growing discontent among Cuban population due to rolling blackouts and shortages",
+          "Exacerbated by US blockade",
+          "Potential for further unrest and instability"
         ],
         "affectedRegions": [
-          "Cuba",
-          "Latin America"
+          "Cuba"
         ],
         "sentiment": "Negative",
         "escalationPotential": "High",
-        "summary": "Cuban protesters ransacked a Communist office due to widespread discontent and shortages, heightened by a US blockade. The event highlights the deteriorating economic and living conditions in Cuba, posing a significant challenge to the government's authority. Further protests and unrest are likely.",
+        "summary": "A wave of protests in Cuba has highlighted growing discontent among the population, exacerbated by the US blockade and shortages of essential goods. This raises concerns about the stability of the communist government and potential for further unrest. The situation requires close monitoring and potential diplomatic intervention to mitigate the risk of escalation.",
         "recommendedActions": [
-          "Monitor Cuban government's response to the protests and assess its impact on the country's stability",
-          "Evaluate the potential escalation of tensions with the US and its implications for regional stability"
+          "Monitor diplomatic channels for potential response from US and Cuba",
+          "Assess the impact of US blockade on Cuba's economic and social stability"
         ]
       },
       "modelUsed": "llama3.2:latest",
-      "analyzedAt": "2026-03-14T23:07:12.839Z"
+      "analyzedAt": "2026-03-14T23:40:34.101Z"
     }
   ],
   [
     "deutsche-welle-UGFraXN0YW4g",
     {
       "id": "deutsche-welle-UGFraXN0YW4g",
-      "lat": 34.025154352157045,
-      "lon": 67.87152040835986,
+      "lat": 33.944018586846816,
+      "lon": 67.88549014650458,
       "date": "2026-03-14T10:57:00.000Z",
       "type": "Deutsche Welle: Pakistan shoots down Taliban drones after strikes ",
       "description": "Pakistan's military said it intercepted \"rudimentary drones\" from Afghanistan. It comes a day after Pakistan launched deadly strikes on Kabul as well as strikes in Kandahar Province.",
@@ -119,9 +119,9 @@
         "threatLevel": "Critical",
         "threatCategory": "Military",
         "keyIndicators": [
-          "Increased drone activity in Afghanistan and Pakistan",
-          "Potential escalation of conflict between Pakistan and the Taliban",
-          "Pakistan's military has demonstrated its capability to intercept and counter drone attacks"
+          "Increased military activity in Afghanistan and Pakistan",
+          "Pakistan's military capabilities and ability to intercept drones",
+          "Escalation of violence in the region"
         ],
         "affectedRegions": [
           "Afghanistan",
@@ -130,22 +130,22 @@
         ],
         "sentiment": "Neutral",
         "escalationPotential": "High",
-        "summary": "Pakistan's military intercepted and shot down Taliban drones in a response to strikes launched by the military in Kabul and Kandahar Province. This incident highlights the potential for escalation in the conflict and the need for caution.",
+        "summary": "Pakistan's military intercepted and shot down Taliban drones in a region where tensions are already high following recent strikes in Afghanistan and Pakistan. This escalation could lead to further conflict and instability in the region.",
         "recommendedActions": [
-          "Monitor the situation in Afghanistan and Pakistan for any further developments",
-          "Assess the potential impact on regional stability and global security"
+          "Monitor the situation closely for any further developments",
+          "Evaluate the potential impact on regional stability and global security"
         ]
       },
       "modelUsed": "llama3.2:latest",
-      "analyzedAt": "2026-03-14T23:11:17.814Z"
+      "analyzedAt": "2026-03-14T23:44:29.687Z"
     }
   ],
   [
     "deutsche-welle-VVMgdnMuIEly",
     {
       "id": "deutsche-welle-VVMgdnMuIEly",
-      "lat": 32.62012972468871,
-      "lon": 53.50260762437234,
+      "lat": 32.21424281688747,
+      "lon": 53.76869630762847,
       "date": "2026-03-14T08:12:00.000Z",
       "type": "Deutsche Welle: US vs. Iran: Three generations of conflict",
       "description": "Three key moments that shaped Iranian and American attitudes toward each other — and show why mistrust endures.",
@@ -155,24 +155,24 @@
         "threatLevel": "Critical",
         "threatCategory": "Geopolitical",
         "keyIndicators": [
-          "Escalating rhetoric between US and Iran leaders",
-          "Increased tensions over US withdrawal from Iran nuclear deal",
-          "Historical grievances and mistrust remain unresolved"
+          "Iran's continued hostility towards the US, despite efforts to improve relations",
+          "The ongoing impact of past conflicts, including the 1979 hostage crisis and the 2003 Iraq War",
+          "Increasing tensions in the region, including the presence of US and Iranian military forces"
         ],
         "affectedRegions": [
           "Middle East",
-          "Global"
+          "North America"
         ],
         "sentiment": "Negative",
         "escalationPotential": "High",
-        "summary": "Mistrust between US and Iran persists due to historical grievances and ongoing tensions over the US withdrawal from the Iran nuclear deal. Escalating rhetoric between leaders and unresolved issues threaten to exacerbate the situation.",
+        "summary": "The long-standing conflict between the US and Iran has its roots in multiple generations of events, including the 1979 hostage crisis, the 2003 Iraq War, and ongoing regional tensions. This has led to a deep-seated mistrust between the two nations. The situation remains volatile, with potential for further escalation.",
         "recommendedActions": [
-          "Monitor diplomatic efforts between US and Iran",
-          "Maintain a close eye on regional developments and potential flashpoints"
+          "Engage in diplomatic efforts to reduce tensions and improve relations",
+          "Monitor regional developments and be prepared for potential conflict escalation"
         ]
       },
       "modelUsed": "llama3.2:latest",
-      "analyzedAt": "2026-03-14T23:13:13.514Z"
+      "analyzedAt": "2026-03-14T23:46:33.713Z"
     }
   ],
   [
@@ -261,8 +261,8 @@
     "bbc-world-news-TW9yZSBVUyBN",
     {
       "id": "bbc-world-news-TW9yZSBVUyBN",
-      "lat": 36.09360136647207,
-      "lon": 138.40783964933829,
+      "lat": 36.174970119657885,
+      "lon": 138.09798261600514,
       "date": "2026-03-14T13:27:32.000Z",
       "type": "BBC World News: More US Marines and warships being moved to Middle",
       "description": "The reinforcements will come from an amphibious ready group that is usually based in Japan, an official told CBS, the BBC's US partner.",
@@ -272,24 +272,24 @@
         "threatLevel": "Critical",
         "threatCategory": "Military",
         "keyIndicators": [
-          "Increased US military presence in the Middle East",
-          "Amphibious ready group relocation from Japan",
-          "Possible escalation of tensions in the region"
+          "Increased military presence in the region may escalate tensions with regional actors.",
+          "Deployment of warships and Marines from Japan may be a response to rising regional tensions or a proactive measure to maintain regional stability.",
+          "The timing of this deployment may be critical in assessing its intentions and potential impact on regional dynamics."
         ],
         "affectedRegions": [
           "Middle East",
-          "Asia"
+          "Asia-Pacific"
         ],
-        "sentiment": "Negative",
+        "sentiment": "Neutral",
         "escalationPotential": "High",
-        "summary": "A significant build-up of US military forces in the Middle East, potentially heightening tensions in the region.",
+        "summary": "The deployment of US Marines and warships from Japan to the Middle East may be a response to rising regional tensions, a proactive measure to maintain regional stability, or a combination of both. This deployment is likely to be closely watched by regional actors and international organizations. The timing of this deployment will be critical in assessing its intentions and potential impact on regional dynamics.",
         "recommendedActions": [
-          "Monitor developments closely and assess potential impact on regional stability",
-          "Conduct diplomatic outreach to regional partners to ensure stability and prevent miscalculation"
+          "Monitor regional news and developments for signs of escalation or de-escalation.",
+          "Maintain close contact with regional allies and partners to assess their perspectives on this deployment and its potential implications."
         ]
       },
       "modelUsed": "llama3.2:latest",
-      "analyzedAt": "2026-03-14T23:09:21.553Z"
+      "analyzedAt": "2026-03-14T23:42:22.326Z"
     }
   ],
   [
