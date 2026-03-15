@@ -43,6 +43,7 @@ export interface EventData {
   status?: string;
   uptime?: string;
   signalsPerMinute?: number;
+  conflictMonitoringActive?: boolean;
 }
 
 // Real GDELT API - returns geolocated articles about conflict events

@@ -193,13 +193,13 @@ export default function App() {
   const [showAtmosphere, setShowAtmosphere] = useState(true);
   const [showGraticules, setShowGraticules] = useState(false);
   const [showClouds, setShowClouds] = useState(false);
-  const [globeRotation, setGlobeRotation] = useState(false);
+  const [globeRotation, setGlobeRotation] = useState(true);
   const [showTerrain, setShowTerrain] = useState(false);
   const [showCameras, setShowCameras] = useState(true);
-  const [pointSize, setPointSize] = useState(2);
+  const [pointSize, setPointSize] = useState(10);
   const [pointQuality, setPointQuality] = useState<"low" | "medium" | "high">("medium");
   const [enableClustering, setEnableClustering] = useState(true);
-  const [maxPoints, setMaxPoints] = useState(500);
+  const [maxPoints, setMaxPoints] = useState(2000);
   const [tileLayer, setTileLayer] = useState<TileLayerKey>("cartodb_dark");
   const [useTiles, setUseTiles] = useState(true);
 
@@ -915,7 +915,7 @@ export default function App() {
                   </div>
                   <div className="range-row">
                     <div className="range-label"><span>Max Points</span><span>{maxPoints}</span></div>
-                    <input type="range" min={50} max={2000} step={50} value={maxPoints} onChange={e => setMaxPoints(+e.target.value)} />
+                    <input type="range" min={50} max={5000} step={50} value={maxPoints} onChange={e => setMaxPoints(+e.target.value)} />
                   </div>
                   <div className="range-row">
                     <div className="range-label"><span>Point Size</span><span>{pointSize}</span></div>
